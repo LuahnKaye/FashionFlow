@@ -1,0 +1,22 @@
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+
+# URL aponta para o banco isolado de pedidos
+URL_DO_BANCO = os.getenv("DATABASE_URL", "sqlite:///./pedidos.db")
+
+motor_do_banco = create_engine(
+    URL_DO_BANCO, connect_args={"check_same_thread": False} if "sqlite" in URL_DO_BANCO else {}
+)
+SessaoLocal = sessionmaker(autocommit=False, autoflush=False, bind=motor_do_banco)
+Base = declarative_base()
+
+def obter_banco():
+    """
+    Fornece uma sessão de banco de dados para as rotas de pedidos.
+    """
+    banco = SessaoLocal()
+    try:
+        yield banco
+    finally:
+        banco.close()

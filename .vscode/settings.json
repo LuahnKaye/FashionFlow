@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "c:\\Users\\Luahn\\Desktop\\Loja_Roupa\\fashion-flow\\servico_identidade\\venv\\Scripts\\python.exe",
+    "python.analysis.extraPaths": [
+        "c:\\Users\\Luahn\\Desktop\\Loja_Roupa\\fashion-flow\\servico_identidade"
+    ],
+    "python.analysis.typeCheckingMode": "basic"
+}

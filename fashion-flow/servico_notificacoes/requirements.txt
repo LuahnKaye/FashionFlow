@@ -1,0 +1,5 @@
+fastapi
+pika==1.3.2
+PyJWT
+cryptography
+psycopg2-binary
