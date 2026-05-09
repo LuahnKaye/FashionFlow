@@ -1,6 +1,8 @@
 import pika
 import json
 import time
+import os
+import sys
 from sqlalchemy.orm import Session
 from banco_de_dados import SessaoLocal, motor_do_banco, Base
 from modelos import Estoque
@@ -12,15 +14,16 @@ def processar_pedido_criado(canal, metodo, propriedades, corpo):
     """
     Callback executado quando uma mensagem chega na fila 'pedido.criado'.
     """
-    dados = json.loads(corpo)
-    id_pedido = dados.get("id_pedido")
-    id_produto = dados.get("id_produto")
-    quantidade = dados.get("quantidade")
-
-    print(f"\n[x] Processando Pedido #{id_pedido} | Produto: {id_produto} | Qtd: {quantidade}")
-
-    banco = SessaoLocal()
     try:
+        dados = json.loads(corpo)
+        id_pedido = dados.get("id_pedido")
+        id_produto = dados.get("id_produto")
+        quantidade = dados.get("quantidade")
+
+        print(f"\n[ESTOQUE] >>> Processando Pedido #{id_pedido} | Produto: {id_produto} | Qtd: {quantidade}")
+        sys.stdout.flush()
+
+        banco = SessaoLocal()
         # Buscamos o item no estoque
         item = banco.query(Estoque).filter(Estoque.id_produto == id_produto).first()
 
@@ -35,39 +38,40 @@ def processar_pedido_criado(canal, metodo, propriedades, corpo):
             canal.basic_ack(delivery_tag=metodo.delivery_tag)
         else:
             print(f"    ❌ Falha: Estoque insuficiente para o Produto {id_produto}")
-            # Em um sistema real, aqui dispararíamos uma mensagem 'estoque.insuficiente'
-            # para cancelar o pedido automaticamente.
+            # Em produção, aqui enviaríamos 'estoque.insuficiente'
             canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)
 
+        banco.close()
     except Exception as e:
         print(f"    🔥 Erro ao processar: {e}")
-        banco.rollback()
-    finally:
-        banco.close()
+        sys.stdout.flush()
 
 def iniciar_consumidor():
-    """
-    Configura a conexão com o RabbitMQ e começa a ouvir a fila.
-    """
+    usuario = os.getenv('RABBITMQ_USER', 'convidado')
+    senha = os.getenv('RABBITMQ_PASS', 'convidado')
+    host = os.getenv('RABBITMQ_HOST', 'rabbitmq')
+
     while True:
         try:
-            credenciais = pika.PlainCredentials('convidado', 'convidado')
-            parametros = pika.ConnectionParameters(host='localhost', credentials=credenciais)
+            print(f"[*] Estoque: Conectando em {host}...")
+            sys.stdout.flush()
+            
+            credenciais = pika.PlainCredentials(usuario, senha)
+            parametros = pika.ConnectionParameters(host=host, credentials=credenciais)
             conexao = pika.BlockingConnection(parametros)
             canal = conexao.channel()
             
             canal.queue_declare(queue='pedido.criado', durable=True)
-            
-            # Dizemos ao RabbitMQ para não mandar mais de uma mensagem por vez para este trabalhador
             canal.basic_qos(prefetch_count=1)
-            
             canal.basic_consume(queue='pedido.criado', on_message_callback=processar_pedido_criado)
             
-            print(" [*] Aguardando mensagens da fila 'pedido.criado'. Para sair pressione CTRL+C")
+            print(" [READY] Estoque aguardando mensagens...")
+            sys.stdout.flush()
             canal.start_consuming()
             
-        except pika.exceptions.AMQPConnectionError:
-            print(" [!] RabbitMQ nao encontrado. Tentando novamente em 5 segundos...")
+        except Exception as e:
+            print(f" [RETRY] Erro de conexão: {e}. Tentando em 5s...")
+            sys.stdout.flush()
             time.sleep(5)
 
 if __name__ == "__main__":
