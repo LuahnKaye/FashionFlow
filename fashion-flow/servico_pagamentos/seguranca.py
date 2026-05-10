@@ -1,9 +1,10 @@
+import os
 import jwt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 
-# Chave deve ser identica aos outros servicos
-CHAVE_SECRETA = "minha_chave_ultra_secreta_aqui_para_assinatura"
+# Chave deve ser lida do ambiente
+CHAVE_SECRETA = os.getenv("JWT_SECRET", "chave_padrao_desenvolvimento_nao_use_em_producao")
 ALGORITMO = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")

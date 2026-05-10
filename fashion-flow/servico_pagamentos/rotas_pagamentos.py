@@ -1,189 +1,139 @@
+# pyrefly: ignore [missing-import]
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Request
+import os
+import json
+# pyrefly: ignore [missing-import]
+from fastapi import APIRouter, Request, HTTPException, Header, Depends
 from sqlalchemy.orm import Session
 from banco_de_dados import obter_banco
 from modelos import Transacao
-from esquemas import PagamentoCriar, TransacaoResposta
-from mensageria import publicar_pagamento_sucesso
-
-import os
-
-# --- CONFIGURAÇÃO DO STRIPE ---
-STRIPE_CHAVE_SECRETA = os.getenv("STRIPE_SECRET_KEY", "chave_nao_configurada")
-STRIPE_WEBHOOK_SECRETO = os.getenv("STRIPE_WEBHOOK_SECRET", "webhook_nao_configurado")
-
-stripe.api_key = STRIPE_CHAVE_SECRETA
-
+from mensageria import publicar_pagamento_sucesso, publicar_pagamento_falha
 from seguranca import verificar_token_acesso
 
-# ... (outros imports)
+# Configuração do Stripe
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 roteador = APIRouter()
 
-# ========================
-# ROTA 1: Criar Sessão de Checkout
-# ========================
-@roteador.post("/criar-checkout", response_model=TransacaoResposta)
-def criar_sessao_checkout(
-    pagamento: PagamentoCriar,
+@roteador.get("/criar-sessao-pagamento/{id_pedido}")
+def criar_sessao_pagamento(
+    id_pedido: int, 
     banco: Session = Depends(obter_banco),
     dados_token: dict = Depends(verificar_token_acesso)
 ):
     """
-    Cria uma Sessão de Checkout no Stripe garantindo a identidade do usuário via JWT.
+    Cria uma sessão de checkout no Stripe para um pedido específico.
     """
-    # SEGURANÇA: Usamos o ID do token, NAO o que vem do corpo da requisicao (frontend)
-    id_usuario_seguro = dados_token.get("id_usuario")
-    """
-    Cria uma Sessão de Checkout no Stripe e registra a transação localmente.
-
-    O frontend receberá a URL e redirecionará o usuário para a página
-    de pagamento hospedada pelo próprio Stripe.
-
-    Args:
-        pagamento (PagamentoCriar): Dados do pedido e valor.
-        banco (Session): Sessão ativa com o banco de dados.
-
-    Returns:
-        TransacaoResposta: Dados da transação incluindo a URL de checkout.
-    """
+    id_usuario = dados_token.get("id_usuario")
+    
     try:
-        # O Stripe trabalha com centavos, então multiplicamos por 100
+        # Criamos a sessão de checkout no Stripe
         sessao = stripe.checkout.Session.create(
-            payment_method_types=["card"],
+            payment_method_types=['card'],
             line_items=[{
-                "price_data": {
-                    "currency": "brl",
-                    "product_data": {
-                        "name": pagamento.nome_produto,
+                'price_data': {
+                    'currency': 'brl',
+                    'product_data': {
+                        'name': f'Pedido #{id_pedido}',
                     },
-                    "unit_amount": int(pagamento.valor * 100),
+                    'unit_amount': 9990, # R$ 99.90 em centavos
                 },
-                "quantity": 1,
+                'quantity': 1,
             }],
-            mode="payment",
-            # URLs para onde o Stripe redireciona o usuário após o pagamento
-            success_url="http://localhost:3000/sucesso?sessao_id={CHECKOUT_SESSION_ID}",
-            cancel_url="http://localhost:3000/cancelado",
+            mode='payment',
+            success_url='http://localhost:3000/sucesso?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url='http://localhost:3000/cancelado',
             metadata={
-                "id_pedido": str(pagamento.id_pedido),
-                "id_usuario": str(id_usuario_seguro),
-                "id_produto": str(pagamento.id_produto),
+                'id_pedido': str(id_pedido),
+                'id_usuario': str(id_usuario)
             }
         )
-    except stripe.error.StripeError as erro:
-        raise HTTPException(status_code=400, detail=f"Erro no Stripe: {str(erro)}")
+        
+        # Registramos a transação como PENDENTE no nosso banco
+        nova_transacao = Transacao(
+            id_pedido=id_pedido,
+            id_usuario=id_usuario,
+            stripe_checkout_id=sessao.id,
+            status="PENDENTE",
+            valor=99.90
+        )
+        banco.add(nova_transacao)
+        banco.commit()
+        
+        return {"url_pagamento": sessao.url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    # Salvamos a transação no nosso banco local para auditoria
-    nova_transacao = Transacao(
-        id_pedido=pagamento.id_pedido,
-        id_usuario=id_usuario_seguro, # Usando o ID validado pelo JWT
-        valor=pagamento.valor,
-        id_sessao_stripe=sessao.id,
-        status="CRIADO"
-    )
-    banco.add(nova_transacao)
-    banco.commit()
-    banco.refresh(nova_transacao)
-
-    # Retornamos a URL do Stripe para o frontend redirecionar
-    resposta = TransacaoResposta(
-        id=nova_transacao.id,
-        id_pedido=nova_transacao.id_pedido,
-        id_sessao_stripe=nova_transacao.id_sessao_stripe,
-        status=nova_transacao.status,
-        url_checkout=sessao.url
-    )
-    return resposta
-
-
-# ========================
-# ROTA 2: Confirmar Pagamento Manualmente (Síncrono)
-# ========================
 @roteador.get("/confirmar-pagamento/{id_sessao}")
-def confirmar_pagamento_manual(id_sessao: str, banco: Session = Depends(obter_banco)):
+def confirmar_pagamento(id_sessao: str, banco: Session = Depends(obter_banco)):
     """
-    Consulta o Stripe diretamente para verificar se a sessão foi paga.
-    Isso substitui a necessidade do Webhook/Stripe CLI em ambiente de teste.
+    Verifica o status de uma sessão de pagamento no Stripe.
     """
     try:
-        # Consultamos o Stripe
         sessao = stripe.checkout.Session.retrieve(id_sessao)
+        transacao = banco.query(Transacao).filter(Transacao.stripe_checkout_id == id_sessao).first()
         
-        if sessao.payment_status == "paid":
-            # Se foi pago, atualizamos o banco e liberamos o ativo
-            transacao = banco.query(Transacao).filter(
-                Transacao.id_sessao_stripe == id_sessao
-            ).first()
-
-            if transacao:
-                if transacao.status != "PAGO":
-                    transacao.status = "PAGO"
-                    banco.commit()
-
-                # SEMPRE tentamos publicar o sucesso, para garantir que o Ativo seja liberado
-                # mesmo que o primeiro sinal tenha falhado.
-                metadados = sessao.get("metadata", {})
-                publicar_pagamento_sucesso({
-                    "id_pedido": int(metadados.get("id_pedido", 0)),
-                    "id_usuario": int(metadados.get("id_usuario", 0)),
-                    "id_produto": int(metadados.get("id_produto", 0)),
-                    "id_sessao_stripe": id_sessao,
-                    "valor": transacao.valor,
-                })
-                return {"sucesso": True, "status": "PAGO", "mensagem": "Sinal de liberação enviado!"}
+        if not transacao:
+            raise HTTPException(status_code=404, detail="Transação não encontrada.")
+            
+        if sessao.payment_status == 'paid':
+            transacao.status = "PAGO"
+            banco.commit()
+            
+            # Notificamos os outros serviços sobre o sucesso
+            publicar_pagamento_sucesso({
+                "id_pedido": transacao.id_pedido,
+                "id_usuario": transacao.id_usuario,
+                "valor": transacao.valor
+            })
+            
+            return {"status": "PAGO", "mensagem": "Pagamento confirmado com sucesso!"}
         
-        return {"sucesso": False, "status": sessao.payment_status, "mensagem": "Pagamento ainda nao confirmado."}
-
+        return {"status": transacao.status}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao verificar pagamento: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# ========================
-# ROTA 3: Webhook do Stripe (Opcional agora)
-# ========================
 @roteador.post("/webhook")
-async def webhook_stripe(request: Request, banco: Session = Depends(obter_banco)):
+async def stripe_webhook(request: Request, banco: Session = Depends(obter_banco), stripe_signature: str = Header(None)):
     """
-    Recebe eventos assíncronos do Stripe (Webhook).
+    Recebe notificações de eventos do Stripe (Webhooks).
     """
-    corpo = await request.body()
-    assinatura = request.headers.get("Stripe-Signature")
-
-    print(f"\n[STRIPE] Webhook recebido! Assinatura detectada.")
-
+    payload = await request.body()
+    
     try:
         evento = stripe.Webhook.construct_event(
-            corpo, assinatura, STRIPE_WEBHOOK_SECRETO
+            payload, stripe_signature, WEBHOOK_SECRET
         )
-    except ValueError:
-        print("[ERRO] Payload invalido")
-        raise HTTPException(status_code=400, detail="Payload do webhook invalido.")
-    except stripe.error.SignatureVerificationError:
-        print("[ERRO] Assinatura invalida! Verifique o STRIPE_WEBHOOK_SECRETO")
+    except Exception as e:
         raise HTTPException(status_code=400, detail="Assinatura do webhook invalida.")
 
-    # Processamos apenas o evento de checkout concluído com sucesso
-    if evento["type"] == "checkout.session.completed":
-        sessao = evento["data"]["object"]
-        id_sessao = sessao["id"]
-        metadados = sessao.get("metadata", {})
-
-        # Atualizamos o status da transação no nosso banco
-        transacao = banco.query(Transacao).filter(
-            Transacao.id_sessao_stripe == id_sessao
-        ).first()
-
+    if evento['type'] == 'checkout.session.completed':
+        sessao = evento['data']['object']
+        metadata = sessao.get('metadata', {})
+        id_pedido = metadata.get('id_pedido')
+        
+        transacao = banco.query(Transacao).filter(Transacao.stripe_checkout_id == sessao.id).first()
         if transacao:
             transacao.status = "PAGO"
             banco.commit()
-
-            # Avisamos o Serviço de Ativos que o pagamento foi confirmado
+            
             publicar_pagamento_sucesso({
-                "id_pedido": int(metadados.get("id_pedido", 0)),
-                "id_usuario": int(metadados.get("id_usuario", 0)),
-                "id_produto": int(metadados.get("id_produto", 0)),
-                "id_sessao_stripe": id_sessao,
-                "valor": transacao.valor,
+                "id_pedido": int(id_pedido),
+                "id_usuario": int(metadata.get('id_usuario')),
+                "id_produto": int(metadata.get('id_produto', 0)),
+                "valor": transacao.valor
             })
+            
+    elif evento['type'] in ['checkout.session.expired', 'payment_intent.payment_failed']:
+        # Se o pagamento falhou ou expirou, disparamos a Saga de Compensação
+        sessao = evento['data']['object']
+        metadata = sessao.get('metadata', {})
+        id_pedido = metadata.get('id_pedido')
+        
+        publicar_pagamento_falha({
+            "id_pedido": int(id_pedido),
+            "id_usuario": int(metadata.get('id_usuario'))
+        })
 
-    return {"recebido": True}
+    return {"status": "sucesso"}

@@ -1,3 +1,4 @@
+import os
 import jwt
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
@@ -38,8 +39,8 @@ def iniciar_servicos_background():
     thread = threading.Thread(target=rodar_consumidor, daemon=True)
     thread.start()
 
-# Configuracao JWT (mesma chave dos outros servicos)
-CHAVE_SECRETA = "minha_chave_ultra_secreta_aqui_para_assinatura"
+# Configuracao JWT lida do ambiente
+CHAVE_SECRETA = os.getenv("JWT_SECRET", "chave_padrao_desenvolvimento_nao_use_em_producao")
 ALGORITMO = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 

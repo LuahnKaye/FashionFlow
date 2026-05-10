@@ -1,12 +1,10 @@
-# pyrefly: ignore [missing-import]
+import os
 from passlib.context import CryptContext
-# pyrefly: ignore [missing-import]
 import jwt
 from datetime import datetime, timedelta
 
-# Configurações do JWT. 
-# NOTA: Em produção essas variáveis devem vir de um arquivo .env
-CHAVE_SECRETA = "minha_chave_ultra_secreta_aqui_para_assinatura"
+# Configurações do JWT lidas do ambiente
+CHAVE_SECRETA = os.getenv("JWT_SECRET", "chave_padrao_desenvolvimento_nao_use_em_producao")
 ALGORITMO = "HS256"
 MINUTOS_EXPIRACAO_TOKEN = 1440
 

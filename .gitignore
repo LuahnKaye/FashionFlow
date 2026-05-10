@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.env
+
+# Bancos de Dados Locais
+*.db
+*.sqlite3
+
+# Docker
+.docker/
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+*.log

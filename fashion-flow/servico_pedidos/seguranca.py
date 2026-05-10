@@ -1,12 +1,10 @@
-# pyrefly: ignore [missing-import]
+import os
 import jwt
-# pyrefly: ignore [missing-import]
 from fastapi import HTTPException, status, Depends
-# pyrefly: ignore [missing-import]
 from fastapi.security import OAuth2PasswordBearer
 
-# Importante: Estas chaves devem ser iguais às do Serviço de Identidade
-CHAVE_SECRETA = "minha_chave_ultra_secreta_aqui_para_assinatura"
+# Importante: Estas chaves devem vir do ambiente (Docker/.env)
+CHAVE_SECRETA = os.getenv("JWT_SECRET", "chave_padrao_desenvolvimento_nao_use_em_producao")
 ALGORITMO = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")

@@ -1,37 +1,47 @@
 import pika
 import json
 import os
+import sys
 
-def publicar_pagamento_sucesso(dados_pagamento):
+def publicar_evento_pagamento(dados, tipo_evento="sucesso"):
     """
-    Publica uma mensagem no RabbitMQ informando que o pagamento foi concluido.
+    Publica um evento de pagamento (sucesso ou falha) no RabbitMQ.
     """
     try:
         usuario = os.getenv('RABBITMQ_USER', 'convidado')
         senha = os.getenv('RABBITMQ_PASS', 'convidado')
         host = os.getenv('RABBITMQ_HOST', 'rabbitmq')
 
-        print(f"\n[MQ-DEBUG] Tentando conexão: {host} | Usuário: {usuario}")
-
         credenciais = pika.PlainCredentials(usuario, senha)
-        parametros = pika.ConnectionParameters(
-            host=host, 
-            port=5672,
-            credentials=credenciais
-        )
-        
+        parametros = pika.ConnectionParameters(host=host, credentials=credenciais)
         conexao = pika.BlockingConnection(parametros)
         canal = conexao.channel()
 
-        canal.exchange_declare(exchange='pagamento_ex', exchange_type='fanout', durable=True)
+        # Usamos um fanout para que múltiplos serviços (Estoque, Pedidos, Notificações) 
+        # ouçam o resultado do pagamento simultaneamente.
+        exchange_nome = 'pagamento_ex'
+        canal.exchange_declare(exchange=exchange_nome, exchange_type='fanout', durable=True)
 
-        mensagem = json.dumps(dados_pagamento)
+        # Adicionamos o tipo de evento no payload
+        dados["tipo_evento"] = tipo_evento
+        mensagem = json.dumps(dados)
+
         canal.basic_publish(
-            exchange='pagamento_ex',
+            exchange=exchange_nome,
             routing_key='',
-            body=mensagem
+            body=mensagem,
+            properties=pika.BasicProperties(delivery_mode=2)
         )
-        print("[MQ-SUCCESS] Mensagem enviada para o Exchange!")
+        
+        print(f" [MQ] Evento '{tipo_evento}' publicado para o Pedido #{dados.get('id_pedido')}")
+        sys.stdout.flush()
         conexao.close()
     except Exception as e:
-        print(f"[MQ-ERROR] Falha crítica: {e}")
+        print(f" [MQ-ERROR] Falha ao publicar evento: {e}")
+        sys.stdout.flush()
+
+def publicar_pagamento_sucesso(dados):
+    publicar_evento_pagamento(dados, tipo_evento="sucesso")
+
+def publicar_pagamento_falha(dados):
+    publicar_evento_pagamento(dados, tipo_evento="falha")

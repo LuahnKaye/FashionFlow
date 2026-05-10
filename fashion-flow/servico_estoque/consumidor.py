@@ -7,18 +7,15 @@ from banco_de_dados import SessaoLocal, motor_do_banco, Base
 from modelos import Estoque
 from utilitarios_rabbitmq import configurar_resiliencia
 
-# Garantimos que a tabela existe
 Base.metadata.create_all(bind=motor_do_banco)
 
 def processar_pedido_criado(canal, metodo, propriedades, corpo):
+    """Reserva o item no estoque quando o pedido nasce."""
     try:
         dados = json.loads(corpo)
         id_pedido = dados.get("id_pedido")
         id_produto = dados.get("id_produto")
         quantidade = dados.get("quantidade")
-
-        print(f"\n[ESTOQUE] >>> Processando Reserva: Pedido #{id_pedido} | Produto: {id_produto}")
-        sys.stdout.flush()
 
         banco = SessaoLocal()
         item = banco.query(Estoque).filter(Estoque.id_produto == id_produto).first()
@@ -27,16 +24,46 @@ def processar_pedido_criado(canal, metodo, propriedades, corpo):
             item.quantidade_disponivel -= quantidade
             item.quantidade_reservada += quantidade
             banco.commit()
-            print(f"    ✅ Reserva Concluída para o Pedido #{id_pedido}")
+            print(f" ✅ [ESTOQUE] Reserva OK: Pedido #{id_pedido}")
             canal.basic_ack(delivery_tag=metodo.delivery_tag)
         else:
-            print(f"    ❌ [DLQ] Estoque insuficiente para o Produto {id_produto}. Enviando para DLQ.")
+            print(f" ❌ [ESTOQUE] Sem saldo para Pedido #{id_pedido}")
             canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)
-
         banco.close()
     except Exception as e:
-        print(f"    🔥 Erro crítico no estoque: {e}")
-        sys.stdout.flush()
+        print(f" 🔥 Erro reserva: {e}")
+        canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)
+
+def processar_resultado_pagamento(canal, metodo, propriedades, corpo):
+    """Confirma a baixa ou devolve o estoque baseado no resultado do pagamento."""
+    try:
+        dados = json.loads(corpo)
+        tipo = dados.get("tipo_evento")
+        id_produto = dados.get("id_produto")
+        quantidade = dados.get("quantidade", 1)
+
+        banco = SessaoLocal()
+        item = banco.query(Estoque).filter(Estoque.id_produto == id_produto).first()
+
+        if not item:
+            canal.basic_ack(delivery_tag=metodo.delivery_tag)
+            return
+
+        if tipo == "sucesso":
+            # Pagamento OK: O item sai do 'reservado' definitivamente
+            item.quantidade_reservada -= quantidade
+            print(f" 📦 [ESTOQUE] Baixa definitiva: Produto #{id_produto}")
+        elif tipo == "falha":
+            # Pagamento Falhou: O item volta para o 'disponivel'
+            item.quantidade_reservada -= quantidade
+            item.quantidade_disponivel += quantidade
+            print(f" ♻️ [ESTOQUE] Devolução (Saga Compensação): Produto #{id_produto}")
+
+        banco.commit()
+        banco.close()
+        canal.basic_ack(delivery_tag=metodo.delivery_tag)
+    except Exception as e:
+        print(f" 🔥 Erro compensação: {e}")
         canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)
 
 def iniciar_consumidor():
@@ -51,24 +78,19 @@ def iniciar_consumidor():
             conexao = pika.BlockingConnection(parametros)
             canal = conexao.channel()
             
-            # Usamos o utilitário de resiliência com exchange Direct para o estoque
-            configurar_resiliencia(
-                canal=canal,
-                nome_da_fila='pedido.criado',
-                exchange_principal='pedido_ex',
-                tipo_exchange='direct'
-            )
-
-            canal.basic_qos(prefetch_count=1)
+            # 1. Escuta Pedidos Novos para Reservar
+            configurar_resiliencia(canal, 'pedido.criado', 'pedido_ex', 'direct')
             canal.basic_consume(queue='pedido.criado', on_message_callback=processar_pedido_criado)
+
+            # 2. Escuta Resultados de Pagamento para Confirmar ou Devolver
+            configurar_resiliencia(canal, 'estoque.pagamento_sync', 'pagamento_ex', 'fanout')
+            canal.basic_consume(queue='estoque.pagamento_sync', on_message_callback=processar_resultado_pagamento)
             
-            print(" [READY] Estoque protegido com DLQ aguardando pedidos...")
+            print(" [READY] Estoque pronto (Reserva + Compensação).")
             sys.stdout.flush()
             canal.start_consuming()
-            
         except Exception as e:
-            print(f" [RETRY] Erro no Estoque: {e}. Tentando em 5s...")
-            sys.stdout.flush()
+            print(f" [RETRY] Erro no Estoque: {e}. Reiniciando em 5s...")
             time.sleep(5)
 
 if __name__ == "__main__":
