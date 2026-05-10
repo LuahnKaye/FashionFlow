@@ -25,15 +25,15 @@ def enviar_mensagem_fila(dados_pedido: dict):
         conexao = pika.BlockingConnection(parametros)
         canal = conexao.channel()
         
-        # Garantimos que a fila existe
-        canal.queue_declare(queue='pedido.criado', durable=True)
+        # Declaramos o Exchange dedicado
+        canal.exchange_declare(exchange='pedido_ex', exchange_type='direct', durable=True)
         
-        # Publicamos a mensagem
+        # Publicamos a mensagem para o Exchange
         canal.basic_publish(
-            exchange='',
+            exchange='pedido_ex',
             routing_key='pedido.criado',
             body=json.dumps(dados_pedido),
-            properties=pika.BasicProperties(delivery_mode=2) # Torna a mensagem persistente
+            properties=pika.BasicProperties(delivery_mode=2)
         )
         conexao.close()
     except Exception as e:

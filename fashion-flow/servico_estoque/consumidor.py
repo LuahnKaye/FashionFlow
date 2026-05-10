@@ -3,48 +3,41 @@ import json
 import time
 import os
 import sys
-from sqlalchemy.orm import Session
 from banco_de_dados import SessaoLocal, motor_do_banco, Base
 from modelos import Estoque
+from utilitarios_rabbitmq import configurar_resiliencia
 
-# Garantimos que a tabela existe antes do consumidor rodar
+# Garantimos que a tabela existe
 Base.metadata.create_all(bind=motor_do_banco)
 
 def processar_pedido_criado(canal, metodo, propriedades, corpo):
-    """
-    Callback executado quando uma mensagem chega na fila 'pedido.criado'.
-    """
     try:
         dados = json.loads(corpo)
         id_pedido = dados.get("id_pedido")
         id_produto = dados.get("id_produto")
         quantidade = dados.get("quantidade")
 
-        print(f"\n[ESTOQUE] >>> Processando Pedido #{id_pedido} | Produto: {id_produto} | Qtd: {quantidade}")
+        print(f"\n[ESTOQUE] >>> Processando Reserva: Pedido #{id_pedido} | Produto: {id_produto}")
         sys.stdout.flush()
 
         banco = SessaoLocal()
-        # Buscamos o item no estoque
         item = banco.query(Estoque).filter(Estoque.id_produto == id_produto).first()
 
         if item and item.quantidade_disponivel >= quantidade:
-            # Reservamos o item: tiramos do disponivel e colocamos no reservado
             item.quantidade_disponivel -= quantidade
             item.quantidade_reservada += quantidade
             banco.commit()
-            print(f"    ✅ Sucesso: Estoque reservado para o Pedido #{id_pedido}")
-            
-            # Avisamos ao RabbitMQ que a mensagem foi processada com sucesso
+            print(f"    ✅ Reserva Concluída para o Pedido #{id_pedido}")
             canal.basic_ack(delivery_tag=metodo.delivery_tag)
         else:
-            print(f"    ❌ Falha: Estoque insuficiente para o Produto {id_produto}")
-            # Em produção, aqui enviaríamos 'estoque.insuficiente'
+            print(f"    ❌ [DLQ] Estoque insuficiente para o Produto {id_produto}. Enviando para DLQ.")
             canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)
 
         banco.close()
     except Exception as e:
-        print(f"    🔥 Erro ao processar: {e}")
+        print(f"    🔥 Erro crítico no estoque: {e}")
         sys.stdout.flush()
+        canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)
 
 def iniciar_consumidor():
     usuario = os.getenv('RABBITMQ_USER', 'convidado')
@@ -53,24 +46,28 @@ def iniciar_consumidor():
 
     while True:
         try:
-            print(f"[*] Estoque: Conectando em {host}...")
-            sys.stdout.flush()
-            
             credenciais = pika.PlainCredentials(usuario, senha)
             parametros = pika.ConnectionParameters(host=host, credentials=credenciais)
             conexao = pika.BlockingConnection(parametros)
             canal = conexao.channel()
             
-            canal.queue_declare(queue='pedido.criado', durable=True)
+            # Usamos o utilitário de resiliência com exchange Direct para o estoque
+            configurar_resiliencia(
+                canal=canal,
+                nome_da_fila='pedido.criado',
+                exchange_principal='pedido_ex',
+                tipo_exchange='direct'
+            )
+
             canal.basic_qos(prefetch_count=1)
             canal.basic_consume(queue='pedido.criado', on_message_callback=processar_pedido_criado)
             
-            print(" [READY] Estoque aguardando mensagens...")
+            print(" [READY] Estoque protegido com DLQ aguardando pedidos...")
             sys.stdout.flush()
             canal.start_consuming()
             
         except Exception as e:
-            print(f" [RETRY] Erro de conexão: {e}. Tentando em 5s...")
+            print(f" [RETRY] Erro no Estoque: {e}. Tentando em 5s...")
             sys.stdout.flush()
             time.sleep(5)
 

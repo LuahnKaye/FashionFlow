@@ -5,9 +5,9 @@ import os
 import sys
 from banco_de_dados import SessaoLocal, motor_do_banco, Base
 from modelos import BibliotecaUsuario
+from utilitarios_rabbitmq import configurar_resiliencia
 
-# Forçamos a criação das tabelas no início
-print("[DB] Garantindo que as tabelas existem...")
+# Forçamos a criação das tabelas
 Base.metadata.create_all(bind=motor_do_banco)
 
 CATALOGO_IMAGENS = {
@@ -17,21 +17,26 @@ CATALOGO_IMAGENS = {
 }
 
 def processar_pagamento_sucesso(canal, metodo, propriedades, corpo):
-    print(f"\n>>> [ATIVOS] MENSAGEM RECEBIDA: {corpo.decode()}")
-    sys.stdout.flush()
-    
     try:
         dados = json.loads(corpo)
         id_pedido = dados.get("id_pedido")
         id_usuario = dados.get("id_usuario")
         id_produto = dados.get("id_produto")
 
-        print(f"    [PROCESSANDO] Pedido #{id_pedido} para Usuário {id_usuario}")
+        print(f"\n [PROCESSANDO] Pedido #{id_pedido} para Usuário {id_usuario}")
         sys.stdout.flush()
 
         banco = SessaoLocal()
-        url_imagem = CATALOGO_IMAGENS.get(id_produto, "/imagens/produto_generico.jpg")
+        
+        # IDEMPOTÊNCIA: Verificamos se esse pedido já não foi processado antes
+        existente = banco.query(BibliotecaUsuario).filter(BibliotecaUsuario.id_pedido == id_pedido).first()
+        if existente:
+            print(f"  [IGNORANDO] Pedido #{id_pedido} já foi entregue anteriormente.")
+            canal.basic_ack(delivery_tag=metodo.delivery_tag)
+            banco.close()
+            return
 
+        url_imagem = CATALOGO_IMAGENS.get(id_produto, "/imagens/produto_generico.jpg")
         novo_ativo = BibliotecaUsuario(
             id_usuario=id_usuario,
             id_pedido=id_pedido,
@@ -43,16 +48,15 @@ def processar_pagamento_sucesso(canal, metodo, propriedades, corpo):
         banco.commit()
         banco.close()
 
-        print(f"    [SUCESSO] Ativo gravado no banco de dados!")
+        print(f"  ✅ [SUCESSO] Ativo liberado na galeria!")
         sys.stdout.flush()
-        
         canal.basic_ack(delivery_tag=metodo.delivery_tag)
 
     except Exception as e:
-        print(f"    [ERRO CRÍTICO] Falha ao processar: {e}")
+        print(f"  🔥 [ERRO-DLQ] Falha no processamento de ativos: {e}")
         sys.stdout.flush()
-        # Se deu erro, não damos ACK para tentar de novo depois
-        canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=True)
+        # Envia para a DLQ em caso de falha persistente
+        canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)
 
 def iniciar_consumidor():
     usuario = os.getenv('RABBITMQ_USER', 'convidado')
@@ -61,32 +65,26 @@ def iniciar_consumidor():
 
     while True:
         try:
-            print(f"[*] Ativos: Tentando conectar em {host}...")
-            sys.stdout.flush()
-            
             credenciais = pika.PlainCredentials(usuario, senha)
-            parametros = pika.ConnectionParameters(
-                host=host, 
-                credentials=credenciais,
-                heartbeat=600,
-                blocked_connection_timeout=300
-            )
+            parametros = pika.ConnectionParameters(host=host, credentials=credenciais)
             conexao = pika.BlockingConnection(parametros)
             canal = conexao.channel()
 
-            canal.exchange_declare(exchange='pagamento_ex', exchange_type='fanout', durable=True)
-            canal.queue_declare(queue='pagamento.sucesso.v2', durable=True)
-            canal.queue_bind(exchange='pagamento_ex', queue='pagamento.sucesso.v2')
+            configurar_resiliencia(
+                canal=canal,
+                nome_da_fila='pagamento.sucesso.v2',
+                exchange_principal='pagamento_ex'
+            )
 
             canal.basic_qos(prefetch_count=1)
             canal.basic_consume(queue='pagamento.sucesso.v2', on_message_callback=processar_pagamento_sucesso)
 
-            print(" [READY] Consumidor de Ativos pronto e ouvindo!")
+            print(" [READY] Serviço de Ativos pronto com proteção DLQ.")
             sys.stdout.flush()
             canal.start_consuming()
 
         except Exception as e:
-            print(f" [RETRY] Conexão caiu: {e}. Reiniciando em 5s...")
+            print(f" [RETRY] Erro: {e}. Reiniciando em 5s...")
             sys.stdout.flush()
             time.sleep(5)
 

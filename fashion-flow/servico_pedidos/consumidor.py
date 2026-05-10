@@ -5,20 +5,18 @@ import os
 import sys
 from banco_de_dados import SessaoLocal, motor_do_banco, Base
 from modelos import Pedido
+from utilitarios_rabbitmq import configurar_resiliencia
 
-# Garantimos que a tabela existe antes do consumidor rodar
+# Garantimos que a tabela existe
 Base.metadata.create_all(bind=motor_do_banco)
 
 def processar_pagamento_sucesso(canal, metodo, propriedades, corpo):
     """
-    Callback executado quando um pagamento é confirmado com sucesso.
+    Atualiza status do pedido com tratamento de erro e DLQ.
     """
     try:
         dados = json.loads(corpo)
         id_pedido = dados.get("id_pedido")
-
-        print(f"\n[PEDIDOS] >>> Atualizando status do Pedido #{id_pedido} para PAGO")
-        sys.stdout.flush()
 
         banco = SessaoLocal()
         pedido = banco.query(Pedido).filter(Pedido.id == id_pedido).first()
@@ -26,16 +24,18 @@ def processar_pagamento_sucesso(canal, metodo, propriedades, corpo):
         if pedido:
             pedido.status = "PAGO"
             banco.commit()
-            print(f"    ✅ Sucesso: Pedido #{id_pedido} marcado como PAGO.")
+            print(f" ✅ [SYNC-PEDIDO] #{id_pedido} marcado como PAGO.")
             canal.basic_ack(delivery_tag=metodo.delivery_tag)
         else:
-            print(f"    ⚠️ Aviso: Pedido #{id_pedido} não encontrado.")
-            canal.basic_ack(delivery_tag=metodo.delivery_tag)
+            # Se o pedido não existir, algo está muito errado nos dados. Vai para DLQ.
+            print(f" ⚠️ [DLQ] Pedido #{id_pedido} não encontrado. Enviando para DLQ.")
+            canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)
 
         banco.close()
     except Exception as e:
-        print(f"    🔥 Erro ao atualizar pedido: {e}")
+        print(f" 🔥 Erro crítico no Sync de Pedidos: {e}")
         sys.stdout.flush()
+        canal.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)
 
 def iniciar_consumidor():
     usuario = os.getenv('RABBITMQ_USER', 'convidado')
@@ -44,22 +44,21 @@ def iniciar_consumidor():
 
     while True:
         try:
-            print(f"[*] Pedidos: Conectando em {host}...")
-            sys.stdout.flush()
-            
             credenciais = pika.PlainCredentials(usuario, senha)
             parametros = pika.ConnectionParameters(host=host, credentials=credenciais)
             conexao = pika.BlockingConnection(parametros)
             canal = conexao.channel()
             
-            canal.exchange_declare(exchange='pagamento_ex', exchange_type='fanout', durable=True)
-            canal.queue_declare(queue='pagamentos.pedidos_sync', durable=True)
-            canal.queue_bind(exchange='pagamento_ex', queue='pagamentos.pedidos_sync')
+            configurar_resiliencia(
+                canal=canal,
+                nome_da_fila='pagamentos.pedidos_sync',
+                exchange_principal='pagamento_ex'
+            )
 
             canal.basic_qos(prefetch_count=1)
             canal.basic_consume(queue='pagamentos.pedidos_sync', on_message_callback=processar_pagamento_sucesso)
             
-            print(" [READY] Sincronizador de Pedidos pronto!")
+            print(" [READY] Sincronizador de Pedidos protegido com DLQ.")
             sys.stdout.flush()
             canal.start_consuming()
             
