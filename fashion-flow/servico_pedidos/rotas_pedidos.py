@@ -3,7 +3,7 @@ import pika
 import json
 import os
 # pyrefly: ignore [missing-import]
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from banco_de_dados import obter_banco
 from modelos import Pedido

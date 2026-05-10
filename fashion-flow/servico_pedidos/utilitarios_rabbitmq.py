@@ -1,7 +1,4 @@
-import pika
-import os
 import sys
-import time
 
 def configurar_resiliencia(canal, nome_da_fila, exchange_principal, tipo_exchange='fanout'):
     """

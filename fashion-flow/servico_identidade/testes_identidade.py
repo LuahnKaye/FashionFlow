@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 from main import app
 from banco_de_dados import Base, motor_do_banco

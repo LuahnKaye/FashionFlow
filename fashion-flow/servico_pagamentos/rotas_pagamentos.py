@@ -1,7 +1,6 @@
 # pyrefly: ignore [missing-import]
 import stripe
 import os
-import json
 # pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Request, HTTPException, Header, Depends
 from sqlalchemy.orm import Session
@@ -105,7 +104,7 @@ async def stripe_webhook(request: Request, banco: Session = Depends(obter_banco)
         evento = stripe.Webhook.construct_event(
             payload, stripe_signature, WEBHOOK_SECRET
         )
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=400, detail="Assinatura do webhook invalida.")
 
     if evento['type'] == 'checkout.session.completed':

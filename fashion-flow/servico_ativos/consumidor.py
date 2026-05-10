@@ -48,7 +48,7 @@ def processar_pagamento_sucesso(canal, metodo, propriedades, corpo):
         banco.commit()
         banco.close()
 
-        print(f"  ✅ [SUCESSO] Ativo liberado na galeria!")
+        print("  ✅ [SUCESSO] Ativo liberado na galeria!")
         sys.stdout.flush()
         canal.basic_ack(delivery_tag=metodo.delivery_tag)
 

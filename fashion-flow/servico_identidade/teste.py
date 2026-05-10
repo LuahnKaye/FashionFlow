@@ -9,7 +9,7 @@ banco = next(banco_gen)
 try:
     resultado = registrar_usuario(usuario_data, banco)
     print("Sucesso:", resultado)
-except Exception as e:
+except Exception:
     import traceback
     traceback.print_exc()
 finally:

@@ -1,7 +1,6 @@
 # pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
 
 class PedidoBase(BaseModel):
     id_produto: int

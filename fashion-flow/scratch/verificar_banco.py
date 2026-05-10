@@ -1,6 +1,5 @@
-from sqlalchemy import create_all, create_engine, MetaData, Table
+from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.orm import sessionmaker
-import os
 
 # Configurações do Banco
 DB_URL = "postgresql://usuario_loja:senha_loja@localhost:5432/fashionflow"

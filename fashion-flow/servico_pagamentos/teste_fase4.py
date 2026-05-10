@@ -133,7 +133,7 @@ def testar_fluxo_pagamento_ativos():
     ).first()
     
     if ativo:
-        print(f"   OK: Ativo encontrado na biblioteca do usuario!")
+        print("   OK: Ativo encontrado na biblioteca do usuario!")
         print(f"   -> ID: {ativo.id}")
         print(f"   -> Produto: {ativo.id_produto}")
         print(f"   -> Status: {ativo.status}")
