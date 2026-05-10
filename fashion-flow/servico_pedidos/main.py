@@ -20,7 +20,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import threading
+from consumidor import iniciar_consumidor
+
 app.include_router(roteador)
+
+@app.on_event("startup")
+def iniciar_servicos_segundo_plano():
+    """
+    Inicia o consumidor RabbitMQ em uma thread separada para não bloquear o FastAPI.
+    """
+    print("[INFO] Iniciando consumidor de Pedidos em segundo plano...")
+    thread = threading.Thread(target=iniciar_consumidor, daemon=True)
+    thread.start()
 
 @app.get("/")
 def verificar_saude():
