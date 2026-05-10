@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from banco_de_dados import obter_banco
 from modelos import Usuario
-from esquemas import UsuarioCriar, UsuarioResposta, TokenAcesso
+from esquemas import UsuarioCriar, UsuarioResposta, TokenAcesso, UsuarioLogin
 from seguranca import gerar_hash_senha, verificar_senha, criar_token_acesso
 from dependencias import verificar_token_acesso
 
@@ -42,12 +42,12 @@ def registrar_usuario(usuario_entrada: UsuarioCriar, banco: Session = Depends(ob
     return novo_usuario
 
 @roteador.post("/login", response_model=TokenAcesso)
-def realizar_login(usuario_entrada: UsuarioCriar, banco: Session = Depends(obter_banco)):
+def realizar_login(usuario_entrada: UsuarioLogin, banco: Session = Depends(obter_banco)):
     """
     Confirma as credenciais do usuário e retorna um Token JWT válido.
 
     Args:
-        usuario_entrada (UsuarioCriar): E-mail e senha enviados pelo cliente.
+        usuario_entrada (UsuarioLogin): E-mail e senha enviados pelo cliente.
         banco (Session): Sessão ativa com o banco.
 
     Returns:

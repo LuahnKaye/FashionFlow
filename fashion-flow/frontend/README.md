@@ -1,16 +1,30 @@
-# React + Vite
+# 🎨 FashionFlow - Frontend Experience
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este é o cliente web do ecossistema **FashionFlow**. Uma interface de alta costura projetada para oferecer uma experiência de compra fluida, rápida e visualmente impactante.
 
-Currently, two official plugins are available:
+## ✨ Diferenciais da Interface
+- **Estética Typographic Brutalism**: Design moderno focado em tipografia e contrastes elegantes.
+- **Modo Escuro Nativo**: Otimizado para conforto visual.
+- **Micro-animações**: Transições suaves utilizando Framer Motion para feedback tátil.
+- **Gestão de Estado em Tempo Real**: Atualização instantânea do carrinho e status de pedidos.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🛠️ Tecnologias
+- **React.js** (Vite para build ultra-rápido)
+- **Tailwind CSS** (Design System utilitário)
+- **Framer Motion** (Orquestração de animações)
+- **React Router** (Navegação SPA)
 
-## React Compiler
+## 🚀 Como Executar
+1. Certifique-se de que o backend está rodando.
+2. Instale as dependências:
+   ```bash
+   npm install
+   ```
+3. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
+4. Acesse [http://localhost:3000](http://localhost:3000)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+*A elegância está nos detalhes e no desempenho.*

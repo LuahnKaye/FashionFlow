@@ -14,7 +14,7 @@ roteador = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
 def enviar_mensagem_fila(dados_pedido: dict):
     """
-    Envia uma mensagem para o RabbitMQ notificando a criação do pedido.
+    Envia uma mensagem para o RabbitMQ. Retorna True se tiver sucesso.
     """
     try:
         credenciais = pika.PlainCredentials(
@@ -25,10 +25,8 @@ def enviar_mensagem_fila(dados_pedido: dict):
         conexao = pika.BlockingConnection(parametros)
         canal = conexao.channel()
         
-        # Declaramos o Exchange dedicado
         canal.exchange_declare(exchange='pedido_ex', exchange_type='direct', durable=True)
         
-        # Publicamos a mensagem para o Exchange
         canal.basic_publish(
             exchange='pedido_ex',
             routing_key='pedido.criado',
@@ -36,9 +34,10 @@ def enviar_mensagem_fila(dados_pedido: dict):
             properties=pika.BasicProperties(delivery_mode=2)
         )
         conexao.close()
+        return True
     except Exception as e:
         print(f"Erro ao conectar ao RabbitMQ: {e}")
-        # Em produção, poderíamos usar uma estratégia de retry aqui
+        return False
 
 @roteador.post("/", response_model=PedidoResposta)
 def criar_pedido(
@@ -51,20 +50,19 @@ def criar_pedido(
     """
     id_usuario = dados_token.get("id_usuario")
     
-    # Criamos a entidade no banco
+    # Criamos a entidade no banco, mas ainda não damos o commit final
     novo_pedido = Pedido(
         id_usuario=id_usuario,
         id_produto=pedido_entrada.id_produto,
         quantidade=pedido_entrada.quantidade,
         preco_total=pedido_entrada.preco_total,
-        status="PENDENTE"
+        status="AGUARDANDO_RESERVA" # Começamos com um status intermediário
     )
     
     banco.add(novo_pedido)
-    banco.commit()
-    banco.refresh(novo_pedido)
+    banco.flush() # Gera o ID do pedido sem salvar definitivamente
     
-    # Preparamos os dados para a fila (id do pedido, id do usuario e o que foi comprado)
+    # Preparamos os dados para a fila
     payload_fila = {
         "id_pedido": novo_pedido.id,
         "id_usuario": id_usuario,
@@ -72,7 +70,14 @@ def criar_pedido(
         "quantidade": novo_pedido.quantidade
     }
     
-    # Notificamos os outros serviços (como o Estoque)
-    enviar_mensagem_fila(payload_fila)
-    
-    return novo_pedido
+    # Só confirmamos no banco se a mensagem foi para o RabbitMQ
+    # Nota Técnica: Para um sistema de escala real, aqui usaríamos o 'Outbox Pattern'
+    if enviar_mensagem_fila(payload_fila):
+        novo_pedido.status = "PENDENTE"
+        banco.commit()
+        banco.refresh(novo_pedido)
+        return novo_pedido
+    else:
+        banco.rollback()
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Sistema de mensageria indisponível. Tente novamente em instantes.")

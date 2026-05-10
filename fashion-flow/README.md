@@ -15,7 +15,7 @@ No terminal, na raiz do projeto, execute:
 ```bash
 docker-compose up -d --build
 ```
-*Isso subirá o Banco de Dados (PostgreSQL), o Mensageiro (RabbitMQ) e os 4 Microsserviços.*
+*Isso subirá o Banco de Dados (PostgreSQL), o Mensageiro (RabbitMQ) e os 6 Microsserviços.*
 
 ### 3. Configurando a Automação de Pagamentos (Stripe)
 Para que o sistema libere os produtos automaticamente após a compra:
@@ -39,6 +39,7 @@ O projeto é dividido em serviços especialistas que se comunicam de forma assí
 *   **Pedidos (Porta 8001)**: Orquestra a criação de ordens de compra.
 *   **Pagamentos (Porta 8002)**: Integração com Stripe e publicação de eventos de sucesso.
 *   **Ativos (Porta 8003)**: O "Cofre" digital. Consome mensagens do RabbitMQ para liberar downloads e gerenciar a galeria do usuário.
+*   **Estoque**: Gerencia a disponibilidade de produtos e realiza a reserva/compensação automática (Saga Pattern).
 *   **Notificações**: Serviço puramente reativo que ouve eventos para futuros disparos de e-mail.
 
 ## 🛠️ Tecnologias Utilizadas
@@ -50,10 +51,32 @@ O projeto é dividido em serviços especialistas que se comunicam de forma assí
 
 ---
 
-## 💎 Diferenciais Técnicos
-*   **Resiliência**: Implementação de filas `v2` para isolamento de ambiente e tratamento de mensagens perdidas.
-*   **Segurança**: Validação rigorosa de tokens JWT entre todos os serviços.
-*   **UX Premium**: Interface com micro-animações, modo escuro nativo e feedback em tempo real do status de pagamento.
+## 🔍 Guia de Validação Técnica (Para Recrutadores)
+
+Para validar a robustez da arquitetura, siga este roteiro de testes:
+
+### 1. Testes Automatizados (Qualidade)
+Verifique a suíte de testes rodando diretamente nos containers:
+```bash
+# Teste de Identidade (Registro, Login, Duplicidade)
+docker exec fashionflow_identidade pytest testes_identidade.py
+
+# Teste de Pedidos (Autorização e Saúde)
+docker exec fashionflow_pedidos pytest testes_pedidos.py
+```
+
+### 2. Observabilidade e Mensageria
+- **RabbitMQ Dashboard**: Acesse [http://localhost:15672](http://localhost:15672) (`convidado`/`convidado`) para ver o fluxo de mensagens e as **DLQs** (Dead Letter Queues) configuradas.
+- **Documentação Swagger**: Cada serviço possui sua própria documentação automática. Ex: [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### 3. Validação do Saga Pattern (Resiliência)
+1. Crie um pedido via Swagger no Serviço de Pedidos.
+2. Verifique no banco que o estoque foi **reservado** (`quantidade_reservada`).
+3. Simule o sucesso do pagamento via rota de teste:
+   ```powershell
+   Invoke-RestMethod -Uri "http://localhost:8002/teste-sucesso?id_pedido=ID&id_usuario=ID&id_produto=ID" -Method Post
+   ```
+4. Note a baixa definitiva no Estoque e a liberação automática no Serviço de Ativos.
 
 ---
-*Desenvolvido com foco em padrões de código limpo e arquitetura distribuída.*
+*Desenvolvido com foco em padrões de código limpo, resiliência e arquitetura distribuída.*

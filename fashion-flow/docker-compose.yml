@@ -41,6 +41,9 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ./servico_identidade:/app
     depends_on:
       banco:
         condition: service_healthy
@@ -56,10 +59,13 @@ services:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - JWT_SECRET=${JWT_SECRET}
       - DD_SERVICE=fashionflow-pedidos
       - DD_ENV=producao
       - DD_VERSION=1.0.0
       - DD_AGENT_HOST=datadog-agent
+    volumes:
+      - ./servico_pedidos:/app
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -79,6 +85,8 @@ services:
       - DD_ENV=producao
       - DD_VERSION=1.0.0
       - DD_AGENT_HOST=datadog-agent
+    volumes:
+      - ./servico_estoque:/app
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -96,12 +104,15 @@ services:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - JWT_SECRET=${JWT_SECRET}
       - DD_SERVICE=fashionflow-pagamentos
       - DD_ENV=producao
       - DD_VERSION=1.0.0
       - DD_AGENT_HOST=datadog-agent
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+    volumes:
+      - ./servico_pagamentos:/app
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -119,10 +130,13 @@ services:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - JWT_SECRET=${JWT_SECRET}
       - DD_SERVICE=fashionflow-ativos
       - DD_ENV=producao
       - DD_VERSION=1.0.0
       - DD_AGENT_HOST=datadog-agent
+    volumes:
+      - ./servico_ativos:/app
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -137,6 +151,8 @@ services:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - ./servico_notificacoes:/app
     depends_on:
       rabbitmq:
         condition: service_healthy

@@ -15,6 +15,17 @@ WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 roteador = APIRouter()
 
+@roteador.post("/teste-sucesso")
+def disparar_sucesso_manual(id_pedido: int, id_usuario: int, id_produto: int):
+    """Rota de debug para forçar o sucesso e testar a Saga."""
+    publicar_pagamento_sucesso({
+        "id_pedido": id_pedido,
+        "id_usuario": id_usuario,
+        "id_produto": id_produto,
+        "valor": 99.90
+    })
+    return {"status": "Sinal de sucesso enviado para a Saga!"}
+
 @roteador.get("/criar-sessao-pagamento/{id_pedido}")
 def criar_sessao_pagamento(
     id_pedido: int, 
