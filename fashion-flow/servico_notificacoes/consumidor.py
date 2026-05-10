@@ -22,7 +22,7 @@ def enviar_notificacao_email(canal, metodo, propriedades, corpo):
         print(f"Seu pagamento do Pedido #{id_pedido} foi confirmado.")
         print(f"Produto Digital: Ativo #{id_produto}")
         print(f"Valor Processado: R$ {valor:.2f}")
-        print(f"O ativo já está disponível em sua Galeria FashionFlow.")
+        print("O ativo já está disponível em sua Galeria FashionFlow.")
         print("="*50 + "\n")
         sys.stdout.flush()
 
