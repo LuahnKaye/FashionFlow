@@ -31,7 +31,7 @@ def publicar_pagamento_sucesso(dados_pagamento):
             routing_key='',
             body=mensagem
         )
-        print(f"[MQ-SUCCESS] Mensagem enviada para o Exchange!")
+        print("[MQ-SUCCESS] Mensagem enviada para o Exchange!")
         conexao.close()
     except Exception as e:
         print(f"[MQ-ERROR] Falha crítica: {e}")

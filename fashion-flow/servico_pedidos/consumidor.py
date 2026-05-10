@@ -3,7 +3,6 @@ import json
 import time
 import os
 import sys
-from sqlalchemy.orm import Session
 from banco_de_dados import SessaoLocal, motor_do_banco, Base
 from modelos import Pedido
 
@@ -22,19 +21,15 @@ def processar_pagamento_sucesso(canal, metodo, propriedades, corpo):
         sys.stdout.flush()
 
         banco = SessaoLocal()
-        # Buscamos o pedido no banco
         pedido = banco.query(Pedido).filter(Pedido.id == id_pedido).first()
 
         if pedido:
             pedido.status = "PAGO"
             banco.commit()
             print(f"    ✅ Sucesso: Pedido #{id_pedido} marcado como PAGO.")
-            
-            # Avisamos ao RabbitMQ que a mensagem foi processada
             canal.basic_ack(delivery_tag=metodo.delivery_tag)
         else:
-            print(f"    ⚠️ Aviso: Pedido #{id_pedido} não encontrado no banco de dados.")
-            # Se não achou, damos ACK para não ficar em loop, mas logamos o erro
+            print(f"    ⚠️ Aviso: Pedido #{id_pedido} não encontrado.")
             canal.basic_ack(delivery_tag=metodo.delivery_tag)
 
         banco.close()
@@ -49,7 +44,7 @@ def iniciar_consumidor():
 
     while True:
         try:
-            print(f"[*] Pedidos: Conectando em {host} para ouvir sucessos de pagamento...")
+            print(f"[*] Pedidos: Conectando em {host}...")
             sys.stdout.flush()
             
             credenciais = pika.PlainCredentials(usuario, senha)
@@ -57,7 +52,6 @@ def iniciar_consumidor():
             conexao = pika.BlockingConnection(parametros)
             canal = conexao.channel()
             
-            # No fanout, cada serviço tem sua própria fila ligada ao mesmo exchange
             canal.exchange_declare(exchange='pagamento_ex', exchange_type='fanout', durable=True)
             canal.queue_declare(queue='pagamentos.pedidos_sync', durable=True)
             canal.queue_bind(exchange='pagamento_ex', queue='pagamentos.pedidos_sync')
@@ -70,7 +64,7 @@ def iniciar_consumidor():
             canal.start_consuming()
             
         except Exception as e:
-            print(f" [RETRY] Erro de conexão no Pedidos: {e}. Tentando em 5s...")
+            print(f" [RETRY] Erro no Pedidos: {e}. Tentando em 5s...")
             sys.stdout.flush()
             time.sleep(5)
 

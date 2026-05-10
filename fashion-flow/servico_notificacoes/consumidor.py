@@ -15,15 +15,15 @@ def enviar_notificacao_email(canal, metodo, propriedades, corpo):
         id_produto = dados.get("id_produto")
         valor = dados.get("valor")
 
-        print(f"\n" + "="*50)
-        print(f"📧 [NOTIFICAÇÕES] >>> ENVIANDO E-MAIL DE CONFIRMAÇÃO")
-        print(f"="*50)
+        print("\n" + "="*50)
+        print("📧 [NOTIFICAÇÕES] >>> ENVIANDO E-MAIL DE CONFIRMAÇÃO")
+        print("="*50)
         print(f"Olá, Usuário #{id_usuario}!")
         print(f"Seu pagamento do Pedido #{id_pedido} foi confirmado.")
         print(f"Produto Digital: Ativo #{id_produto}")
         print(f"Valor Processado: R$ {valor:.2f}")
         print(f"O ativo já está disponível em sua Galeria FashionFlow.")
-        print(f"="*50 + "\n")
+        print("="*50 + "\n")
         sys.stdout.flush()
 
         # Confirma o processamento da mensagem
