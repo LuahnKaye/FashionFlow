@@ -1,23 +1,22 @@
-name: FashionFlow Pipeline (CI/CD)
+name: AtivoSAGA Pipeline (CI/CD)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
 
 jobs:
   qualidade_e_testes:
     runs-on: ubuntu-latest
 
     services:
-      # Banco Real para Testes
       banco_teste:
         image: postgres:15
         env:
           POSTGRES_USER: user_teste
           POSTGRES_PASSWORD: senha_teste
-          POSTGRES_DB: fashionflow_teste
+          POSTGRES_DB: ativosaga_teste
         ports:
           - 5432:5432
         options: >-
@@ -26,7 +25,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      # Mensageria Real para Testes (Evita erro de conexão nos microsserviços)
       rabbitmq:
         image: rabbitmq:3-management
         ports:
@@ -41,33 +39,42 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Instalar Dependências do Sistema
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpq-dev python3-dev
+
     - name: Configurar Python
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
 
-    - name: Instalar Dependências
+    - name: Instalar Dependências Python
       run: |
         python -m pip install --upgrade pip
-        pip install ruff pytest httpx
+        pip install ruff pytest httpx pika sqlalchemy psycopg2-binary passlib python-jose[cryptography] fastapi uvicorn
         echo "Instalando requisitos de todos os serviços..."
-        pip install -r fashion-flow/servico_identidade/requirements.txt
-        pip install -r fashion-flow/servico_pedidos/requirements.txt
-        pip install -r fashion-flow/servico_pagamentos/requirements.txt
+        pip install -r ativosaga/servico_identidade/requirements.txt
+        pip install -r ativosaga/servico_pedidos/requirements.txt
+        pip install -r ativosaga/servico_pagamentos/requirements.txt
 
     - name: Executar Linter (Ruff)
-      run: ruff check fashion-flow/
+      run: ruff check ativosaga/
 
     - name: Executar Testes de Integração
       env:
-        # Injetamos as URLs dos serviços reais criados pelo GitHub
-        DATABASE_URL: postgresql://user_teste:senha_teste@localhost:5432/fashionflow_teste
+        DATABASE_URL: postgresql://user_teste:senha_teste@localhost:5432/ativosaga_teste
         RABBITMQ_HOST: localhost
+        JWT_SECRET: teste_secret
       run: |
         echo "Rodando testes de Identidade..."
-        cd fashion-flow/servico_identidade
-        pytest testes_identidade.py
+        cd ativosaga/servico_identidade
+        pytest testes_identidade.py teste_integracao.py
         
         echo "Rodando testes de Pedidos..."
         cd ../servico_pedidos
         pytest testes_pedidos.py
+        
+        echo "Rodando testes de Pagamentos..."
+        cd ../servico_pagamentos
+        pytest teste_fase4.py
