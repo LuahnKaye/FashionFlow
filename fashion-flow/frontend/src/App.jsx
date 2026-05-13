@@ -16,9 +16,9 @@ function Home({ busca }) {
   const { adicionarAoCarrinho } = useCarrinho();
   
   const produtos = [
-    { id: 501, nome: "Neo-Vision Ativo #501", preco: 0.50, categoria: "Fashion Tech" },
-    { id: 502, nome: "Cyber-Silk Ativo #502", preco: 0.50, categoria: "Digital Wear" },
-    { id: 503, nome: "Ethereal Mesh #503", preco: 0.50, categoria: "Premium Asset" },
+    { id: 501, nome: "Neo-Vision Ativo #501", preco: 0.50, categoria: "Fashion Tech", imagem: "/imagens/produto_1.png" },
+    { id: 502, nome: "Cyber-Silk Ativo #502", preco: 0.50, categoria: "Digital Wear", imagem: "/imagens/produto_2.png" },
+    { id: 503, nome: "Ethereal Mesh #503", preco: 0.50, categoria: "Premium Asset", imagem: "/imagens/produto_3.png" },
   ];
 
   const produtosFiltrados = produtos.filter(p => 
@@ -44,7 +44,7 @@ function Home({ busca }) {
           {produtosFiltrados.map((produto) => (
             <div key={produto.id} className="group cursor-pointer">
               <div className="aspect-[3/4] bg-segunda overflow-hidden rounded-2xl relative mb-6 border border-white/5">
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
                    <button 
                     onClick={(e) => {
                       e.stopPropagation();
@@ -55,9 +55,11 @@ function Home({ busca }) {
                      Adicionar
                    </button>
                 </div>
-                <div className="w-full h-full bg-white/5 flex items-center justify-center text-white/20 italic">
-                  Ativo {produto.id}
-                </div>
+                <img 
+                  src={produto.imagem} 
+                  alt={produto.nome} 
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                />
               </div>
               <h4 className="text-xl font-semibold mb-1">{produto.nome}</h4>
               <p className="text-texto-secundario text-sm uppercase tracking-tighter">{produto.categoria}</p>

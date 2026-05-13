@@ -11,9 +11,9 @@ from utilitarios_rabbitmq import configurar_resiliencia
 Base.metadata.create_all(bind=motor_do_banco)
 
 CATALOGO_IMAGENS = {
-    501: "/imagens/produto_501_alta_resolucao.jpg",
-    502: "/imagens/produto_502_alta_resolucao.jpg",
-    503: "/imagens/produto_503_alta_resolucao.jpg",
+    501: "/imagens/produto_1.png",
+    502: "/imagens/produto_2.png",
+    503: "/imagens/produto_3.png",
 }
 
 def processar_pagamento_sucesso(canal, metodo, propriedades, corpo):
