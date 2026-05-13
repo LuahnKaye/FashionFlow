@@ -9,6 +9,21 @@ URL_PAGAMENTOS = "http://pagamentos:8000"
 URL_ESTOQUE = "http://estoque:8000"
 URL_ATIVOS = "http://ativos:8000"
 
+@pytest.fixture(scope="session", autouse=True)
+def aguardar_servicos():
+    """Garante que as APIs estão prontas antes de iniciar os testes."""
+    servicos = [URL_IDENTIDADE, URL_PEDIDOS, URL_PAGAMENTOS, URL_ESTOQUE, URL_ATIVOS]
+    for url in servicos:
+        for _ in range(10):
+            try:
+                resp = httpx.get(url + "/docs") # Swagger costuma estar sempre lá
+                if resp.status_code == 200:
+                    break
+            except:
+                pass
+            time.sleep(2)
+    print("\n[READY] Todos os serviços estão online.")
+
 @pytest.fixture(scope="session")
 def token_auth():
     """Cria um usuário e obtém o token para os testes."""

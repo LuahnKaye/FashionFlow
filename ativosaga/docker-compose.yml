@@ -76,6 +76,8 @@ services:
   estoque:
     build: ./servico_estoque
     container_name: ativosaga_estoque
+    ports:
+      - "8005:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - RABBITMQ_HOST=${RABBITMQ_HOST}

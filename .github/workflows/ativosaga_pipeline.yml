@@ -11,72 +11,40 @@ jobs:
     name: Qualidade e Testes de Integração
     runs-on: ubuntu-latest
 
-    services:
-      banco_teste:
-        image: postgres:15
-        env:
-          POSTGRES_USER: user_teste
-          POSTGRES_PASSWORD: senha_teste
-          POSTGRES_DB: ativosaga_teste
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      rabbitmq:
-        image: rabbitmq:3-management
-        ports:
-          - 5672:5672
-          - 15672:15672
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q check_running"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
     - name: Checkout do Código
       uses: actions/checkout@v3
-
-    - name: Instalar Dependências do Sistema (Linux)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libpq-dev python3-dev
 
     - name: Configurar Ambiente Python 3.11
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
 
-    - name: Instalar Dependências dos Microsserviços
-      run: |
-        python -m pip install --upgrade pip
-        pip install ruff pytest httpx pika sqlalchemy psycopg2-binary passlib python-jose[cryptography] fastapi uvicorn
-        echo "Instalando requisitos de todos os serviços..."
-        pip install -r ativosaga/servico_identidade/requirements.txt
-        pip install -r ativosaga/servico_pedidos/requirements.txt
-        pip install -r ativosaga/servico_pagamentos/requirements.txt
+    - name: Instalar Ruff para Linter
+      run: pip install ruff
 
     - name: Análise Estática de Código (Linter Ruff)
       run: ruff check ativosaga/
 
-    - name: Execução dos Testes de Integração (Saga E2E)
-      env:
-        DATABASE_URL: postgresql://user_teste:senha_teste@localhost:5432/ativosaga_teste
-        RABBITMQ_HOST: localhost
-        JWT_SECRET: teste_secret
+    - name: Subir Infraestrutura de Teste (Docker Compose)
       run: |
-        echo "🚀 Iniciando testes de Identidade..."
-        cd ativosaga/servico_identidade
-        pytest testes_identidade.py teste_integracao.py
+        cd ativosaga
+        docker-compose up -d
+        echo "Aguardando serviços iniciarem (30s)..."
+        sleep 30
+
+    - name: Execução dos Testes de Integração (Saga E2E)
+      run: |
+        echo "🚀 Iniciando bateria de testes dentro do ambiente Docker..."
+        # Rodamos os testes dentro dos containers para garantir rede interna e dependências corretas
+        docker exec ativosaga_identidade pytest testes_identidade.py teste_integracao.py
+        docker exec ativosaga_pedidos pytest testes_pedidos.py
         
-        echo "📦 Iniciando testes de Pedidos..."
-        cd ../servico_pedidos
-        pytest testes_pedidos.py
-        
-        echo "💳 Iniciando testes de Pagamentos..."
-        cd ../servico_pagamentos
-        pytest teste_fase4.py
+        # Teste de Saga E2E Real (Coreografia)
+        docker exec ativosaga_pedidos pytest -s testes_e2e_saga.py
+
+    - name: Limpeza do Ambiente
+      if: always()
+      run: |
+        cd ativosaga
+        docker-compose down
