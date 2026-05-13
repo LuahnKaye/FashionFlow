@@ -1,4 +1,4 @@
-name: AtivoSAGA Pipeline (CI/CD)
+name: Pipeline de CI/CD AtivoSAGA
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   qualidade_e_testes:
+    name: Qualidade e Testes de Integração
     runs-on: ubuntu-latest
 
     services:
@@ -37,19 +38,20 @@ jobs:
           --health-retries 5
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout do Código
+      uses: actions/checkout@v3
 
-    - name: Instalar Dependências do Sistema
+    - name: Instalar Dependências do Sistema (Linux)
       run: |
         sudo apt-get update
         sudo apt-get install -y libpq-dev python3-dev
 
-    - name: Configurar Python
+    - name: Configurar Ambiente Python 3.11
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
 
-    - name: Instalar Dependências Python
+    - name: Instalar Dependências dos Microsserviços
       run: |
         python -m pip install --upgrade pip
         pip install ruff pytest httpx pika sqlalchemy psycopg2-binary passlib python-jose[cryptography] fastapi uvicorn
@@ -58,23 +60,23 @@ jobs:
         pip install -r ativosaga/servico_pedidos/requirements.txt
         pip install -r ativosaga/servico_pagamentos/requirements.txt
 
-    - name: Executar Linter (Ruff)
+    - name: Análise Estática de Código (Linter Ruff)
       run: ruff check ativosaga/
 
-    - name: Executar Testes de Integração
+    - name: Execução dos Testes de Integração (Saga E2E)
       env:
         DATABASE_URL: postgresql://user_teste:senha_teste@localhost:5432/ativosaga_teste
         RABBITMQ_HOST: localhost
         JWT_SECRET: teste_secret
       run: |
-        echo "Rodando testes de Identidade..."
+        echo "🚀 Iniciando testes de Identidade..."
         cd ativosaga/servico_identidade
         pytest testes_identidade.py teste_integracao.py
         
-        echo "Rodando testes de Pedidos..."
+        echo "📦 Iniciando testes de Pedidos..."
         cd ../servico_pedidos
         pytest testes_pedidos.py
         
-        echo "Rodando testes de Pagamentos..."
+        echo "💳 Iniciando testes de Pagamentos..."
         cd ../servico_pagamentos
         pytest teste_fase4.py

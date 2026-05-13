@@ -1,7 +1,6 @@
 import pytest
 import httpx
 import time
-import os
 
 # Configurações de URLs internas (Rede Docker)
 URL_IDENTIDADE = "http://identidade:8000"
