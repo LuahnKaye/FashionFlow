@@ -68,10 +68,10 @@ docker-compose up -d --build
 ### 1. Testes Automatizados (via Docker)
 ```bash
 # Testes de Identidade (Registro, Login, JWT)
-docker exec fashionflow_identidade pytest testes_identidade.py
+docker exec ativosaga_identidade pytest testes_identidade.py
 
 # Testes de Pedidos (Autorização e Saúde)
-docker exec fashionflow_pedidos pytest testes_pedidos.py
+docker exec ativosaga_pedidos pytest testes_pedidos.py
 ```
 
 ### 2. Endpoints e Dashboards

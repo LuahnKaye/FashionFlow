@@ -1,6 +1,6 @@
 # 🎨 PRD 03: Especificação do Frontend (Interface & UX)
 
-Este documento define a camada de interação do **FashionFlow**. O objetivo é criar uma Single Page Application (SPA) moderna, que mascare a complexidade dos microserviços assíncronos e ofereça uma experiência de compra fluida e segura.
+Este documento define a camada de interação do **AtivoSAGA**. O objetivo é criar uma Single Page Application (SPA) moderna, que mascare a complexidade dos microserviços assíncronos e ofereça uma experiência de compra fluida e segura.
 
 ---
 
@@ -40,7 +40,7 @@ A aplicação será dividida em áreas públicas e protegidas por um **Guarda de
 *   **Comprar Agora:** Um botão que limpa o fluxo normal, cria uma ordem temporária para apenas aquele item e leva o usuário diretamente para o `/checkout`.
 
 ### 3.3 Integração com Stripe Elements
-Em vez de redirecionar para o site do Stripe, incorporamos o componente oficial. Isso mantém a confiança do usuário e permite customizar o design para combinar com a marca FashionFlow.
+Em vez de redirecionar para o site do Stripe, incorporamos o componente oficial. Isso mantém a confiança do usuário e permite customizar o design para combinar com a marca AtivoSAGA.
 
 ---
 

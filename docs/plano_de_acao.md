@@ -1,4 +1,4 @@
-# 🚀 Guia de Execução: Projeto FashionFlow
+# 🚀 Guia de Execução: Projeto AtivoSAGA
 
 Este roteiro segue a lógica de **"Infraestrutura Primeiro, Código Depois"**. Primeiro garantimos que os alicerces estão sólidos para depois levantarmos as paredes (o código).
 

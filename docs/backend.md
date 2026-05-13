@@ -1,6 +1,6 @@
 # ⚙️ PRD 02: Especificação Técnica do Backend
 
-Este documento detalha a engenharia por trás do **FashionFlow**. O foco aqui é garantir que os 6 microserviços operem de forma independente, mas perfeitamente sincronizada, utilizando o que há de mais moderno em desenvolvimento assíncrono com Python.
+Este documento detalha a engenharia por trás do **AtivoSAGA**. O foco aqui é garantir que os 6 microserviços operem de forma independente, mas perfeitamente sincronizada, utilizando o que há de mais moderno em desenvolvimento assíncrono com Python.
 
 ---
 

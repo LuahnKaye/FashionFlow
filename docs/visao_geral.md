@@ -1,13 +1,13 @@
-# 📑 PRD 01: Documento de Visão Geral (FashionFlow)
+# 📑 PRD 01: Documento de Visão Geral (AtivoSAGA)
 
-**Projeto:** FashionFlow – Ecossistema de E-commerce para Ativos Digitais  
+**Projeto:** AtivoSAGA – Ecossistema de E-commerce para Ativos Digitais  
 **Responsável:** Luahn Kayê  
 **Status:** Em Definição
 
 ---
 
 ## 1. Introdução e Contexto
-O **FashionFlow** não é apenas uma loja virtual; é um laboratório de engenharia para sistemas de alta criticidade. O projeto simula a venda de peças de vestuário onde o "produto entregue" é o acesso vitalício à imagem/arte digital da peça (Ativo Digital).
+O **AtivoSAGA** não é apenas uma loja virtual; é um laboratório de engenharia para sistemas de alta criticidade. O projeto simula a venda de peças de vestuário onde o "produto entregue" é o acesso vitalício à imagem/arte digital da peça (Ativo Digital).
 
 O sistema deve ser capaz de processar compras de forma assíncrona, garantindo que o usuário receba seu produto mesmo em cenários de instabilidade de rede ou falha em serviços secundários.
 

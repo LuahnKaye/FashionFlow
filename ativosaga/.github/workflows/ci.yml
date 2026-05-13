@@ -1,0 +1,50 @@
+name: CI AtivoSAGA
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest httpx pika sqlalchemy psycopg2-binary passlib python-jose[cryptography] fastapi uvicorn
+
+    - name: Run Tests - Identidade
+      run: |
+        cd servico_identidade
+        pytest testes_identidade.py teste_integracao.py
+      env:
+        DATABASE_URL: sqlite:///./teste.db
+        JWT_SECRET: teste_secret
+
+    - name: Run Tests - Pedidos
+      run: |
+        cd servico_pedidos
+        pytest testes_pedidos.py
+      env:
+        DATABASE_URL: sqlite:///./teste.db
+        JWT_SECRET: teste_secret
+        RABBITMQ_HOST: localhost
+
+    - name: Run Tests - Pagamentos
+      run: |
+        cd servico_pagamentos
+        pytest teste_fase4.py
+      env:
+        DATABASE_URL: sqlite:///./teste.db
+        JWT_SECRET: teste_secret
+        RABBITMQ_HOST: localhost
