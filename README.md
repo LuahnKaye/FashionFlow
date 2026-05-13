@@ -1,14 +1,24 @@
-# FashionFlow - Ecossistema de Microserviços de Alta Escalabilidade
+# 👗 FashionFlow - Ecossistema de Microserviços de Alta Escalabilidade (EDA)
 
-O **FashionFlow** é uma plataforma de e-commerce moderna, construída sobre uma arquitetura de microsserviços distribuídos, projetada para garantir resiliência, consistência eventual e observabilidade em escala enterprise.
+Bem-vindo ao **FashionFlow**, uma plataforma de e-commerce moderna, construída sob os princípios de **EDA (Event-Driven Architecture)** e Microsserviços, projetada para garantir resiliência, consistência eventual e observabilidade em escala enterprise.
 
-O projeto utiliza o **Saga Pattern** para gerenciar transações distribuídas e **RabbitMQ** com estratégias avançadas de resiliência (Dead Letter Queues) para garantir que nenhuma transação seja perdida.
+Este projeto demonstra o domínio de tecnologias de ponta e padrões de arquitetura distribuída (**Saga Pattern**), sendo uma vitrine de engenharia de software para sistemas de alta criticidade.
+
+---
+
+## 🌟 Diferenciais Técnicos (Nível Enterprise)
+
+1.  **Arquitetura EDA & Saga Pattern**: Orquestração assíncrona entre serviços via RabbitMQ (Coreografia), garantindo desacoplamento máximo e resiliência a falhas parciais.
+2.  **Segurança Auditada**: Proteção contra vulnerabilidades de **ReDoS** (FastAPI 0.109.1) e implementação de **Idempotência** rigorosa em fluxos financeiros e de entrega.
+3.  **CI/CD de Alta Fidelidade**: Pipeline no GitHub Actions que utiliza **Service Containers com PostgreSQL 15 real**, garantindo que os testes de integração reflitam o comportamento exato de produção.
+4.  **Cloud-Native (AWS Ready)**: Estrutura preparada para deploy em **AWS ECS Fargate**, utilizando **RDS** para dados e **Amazon S3** para armazenamento de ativos digitais.
+5.  **Observabilidade com Datadog**: Injeção de **Distributed Tracing** (ddtrace) para monitorar latência e gargalos entre os 6 microsserviços.
 
 ---
 
 ## 🏗️ Arquitetura do Sistema
 
-O ecossistema é composto por 6 microsserviços independentes, cada um com sua própria responsabilidade e banco de dados isolado (Database-per-Service):
+O ecossistema utiliza a estratégia de **Database-per-Service** para garantir que cada motor seja independente:
 
 ```mermaid
 graph TD
@@ -29,66 +39,49 @@ graph TD
 
 ---
 
-## 🚀 Tecnologias e Padrões de Projeto
+## 🚀 Como Executar o Ecossistema
 
-### Core Técnico
-*   **Linguagem**: Python 3.11+
-*   **Framework**: FastAPI (Alta performance e Tipagem forte)
-*   **ORM**: SQLAlchemy com PostgreSQL (Persistência robusta)
-*   **Mensageria**: RabbitMQ (Protocolo AMQP)
-*   **Containerização**: Docker e Docker Compose
+### 1. Pré-requisitos
+*   [Docker](https://www.docker.com/) e Docker Compose instalados.
+*   [Stripe CLI](https://stripe.com/docs/stripe-cli) (para simular pagamentos reais).
 
-### Engenharia de Resiliência
-*   **Saga Pattern (Orquestração/Compensação)**: Implementação de lógica de estorno automático. Se um pagamento falha no Stripe, o estoque reservado é devolvido e o pedido é cancelado automaticamente via eventos.
-*   **Dead Letter Queues (DLQ)**: Configuração de "UTI de mensagens". Mensagens que falham repetidamente são movidas para filas de auditoria, evitando o bloqueio do fluxo principal.
-*   **Mensageria com TTL**: Todas as filas possuem tempo de vida definido para evitar mensagens obsoletas.
+### 2. Inicialização Rápida
+Na raiz do projeto, execute:
+```bash
+docker-compose up -d --build
+```
+*Isso subirá o PostgreSQL, RabbitMQ e todos os 6 Microsserviços.*
 
-### DevOps & Observabilidade
-*   **CI/CD**: Pipeline automatizado via **GitHub Actions** realizando Linting (Flake8) e Testes Unitários/Integração (Pytest) a cada push.
-*   **Tracing Distribuído**: Integração nativa com **Datadog Agent** (ddtrace) para monitoramento de latência e gargalos entre serviços.
-*   **TDD (Test Driven Development)**: Cobertura de testes garantindo que fluxos críticos (como geração de JWT) funcionem conforme o esperado.
+### 3. Configurando o Pagamento (Stripe)
+1.  Faça login: `stripe login`
+2.  Inicie o redirecionamento: `stripe listen --forward-to localhost:8002/webhook`
 
 ---
 
-## 🛠️ Como Executar o Ecossistema
+## 🔍 Qualidade e Documentação
 
-O projeto é 100% dockerizado. Para subir todos os serviços, bancos de dados, mensageria e monitoramento, basta um comando:
-
+### 1. Testes Automatizados (via Docker)
 ```bash
-# Subir todo o ambiente em modo background
-docker-compose up -d --build
+# Testes de Identidade (Registro, Login, JWT)
+docker exec fashionflow_identidade pytest testes_identidade.py
+
+# Testes de Pedidos (Autorização e Saúde)
+docker exec fashionflow_pedidos pytest testes_pedidos.py
 ```
 
-### Endpoints Principais (Swagger UI):
+### 2. Endpoints e Dashboards
 *   **Identidade**: [http://localhost:8000/docs](http://localhost:8000/docs)
 *   **Pedidos**: [http://localhost:8001/docs](http://localhost:8001/docs)
 *   **Pagamentos**: [http://localhost:8002/docs](http://localhost:8002/docs)
-*   **RabbitMQ Management**: [http://localhost:15672](http://localhost:15672) (convidado / convidado)
+*   **RabbitMQ**: [http://localhost:15672](http://localhost:15672) (`convidado` / `convidado`)
 
 ---
 
-## 📐 Padrões de Código e Diretrizes
-
-Este projeto segue rigorosamente o guia de estilo **Antigravity**, focado em legibilidade e manutenibilidade para equipes brasileiras:
-
-1.  **Idioma**: Todo o código, variáveis e documentação em **Português Brasileiro (pt-br)**.
-2.  **Nomenclatura**: `PascalCase` para classes e `snake_case` para funções/variáveis.
-3.  **Docstrings**: Padrão Google para documentação de métodos e classes.
-4.  **Idempotência**: Consumidores RabbitMQ projetados para serem idempotentes, garantindo segurança em caso de reprocessamento de mensagens.
+## 🛠️ Stack Tecnológica
+*   **Backend**: Python (FastAPI), SQLAlchemy, Pika (RabbitMQ).
+*   **Frontend**: React, Tailwind CSS, Framer Motion.
+*   **Infra**: Docker, PostgreSQL, Datadog (Tracing Distribuído).
+*   **Padrões**: Saga (Coreografia), Repository Pattern, Clean Code (PT-BR).
 
 ---
-
-## 🧪 Validando o Funcionamento
-
-Para garantir a integridade do sistema, você pode rodar a suíte de testes interna:
-
-```bash
-# Rodar testes de integração da Identidade
-docker exec fashionflow_identidade pytest testes_identidade.py
-```
-
-Você também pode simular uma compra completa criando um usuário, fazendo login e postando um pedido no serviço de **Pedidos**. Acompanhe o estoque sendo reservado em tempo real no banco de dados!
-
----
-
-*Desenvolvido com foco em excelência técnica e arquitetura de sistemas distribuídos.*
+*Desenvolvido com foco em excelência técnica, resiliência e arquitetura orientada a eventos.*

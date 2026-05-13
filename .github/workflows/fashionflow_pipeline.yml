@@ -10,6 +10,23 @@ jobs:
   qualidade_e_testes:
     runs-on: ubuntu-latest
 
+    services:
+      # Criamos um banco real para os testes rodarem
+      banco_teste:
+        image: postgres:15
+        env:
+          POSTGRES_USER: user_teste
+          POSTGRES_PASSWORD: senha_teste
+          POSTGRES_DB: fashionflow_teste
+        ports:
+          - 5432:5432
+        # Aguarda o banco estar pronto antes de iniciar os testes
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v3
 
@@ -27,8 +44,15 @@ jobs:
     - name: Executar Linter (Ruff)
       run: ruff check fashion-flow/
 
-    - name: Executar Testes Automatizados (Pytest)
+    - name: Executar Testes de Integração (PostgreSQL Real)
+      env:
+        # Aqui injetamos a URL do banco que o GitHub criou acima
+        DATABASE_URL: postgresql://user_teste:senha_teste@localhost:5432/fashionflow_teste
       run: |
-        export DATABASE_URL="sqlite:///./test.db"
+        echo "Rodando testes de Identidade..."
         cd fashion-flow/servico_identidade
         pytest testes_identidade.py
+        
+        echo "Rodando testes de Pedidos..."
+        cd ../servico_pedidos
+        pytest testes_pedidos.py
