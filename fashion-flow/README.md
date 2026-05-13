@@ -1,6 +1,6 @@
 # 👗 FashionFlow - Ecossistema de Microsserviços E-commerce
 
-Bem-vindo ao **FashionFlow**, uma plataforma de e-commerce de alta costura digital construída com uma arquitetura moderna de microsserviços, focada em escalabilidade, resiliência e experiência do usuário premium.
+Bem-vindo ao **FashionFlow**, uma plataforma de e-commerce de alta costura digital construída sob os princípios de **EDA (Event-Driven Architecture)** e Microsserviços, focada em escalabilidade, resiliência e experiência do usuário premium.
 
 Este projeto foi desenvolvido para demonstrar o domínio de tecnologias de ponta e padrões de arquitetura distribuída (Saga Pattern), sendo uma vitrine de engenharia de software para recrutadores e desenvolvedores seniores.
 
@@ -8,16 +8,16 @@ Este projeto foi desenvolvido para demonstrar o domínio de tecnologias de ponta
 
 ## 🌟 Diferenciais Técnicos (O que olhar primeiro)
 
-1.  **Arquitetura Saga (Coreografia)**: O sistema gerencia transações distribuídas entre Estoque, Pedidos e Pagamentos de forma assíncrona, garantindo consistência eventual mesmo em caso de falhas.
+1.  **Arquitetura EDA (Event-Driven Architecture)**: O sistema utiliza o padrão Saga (Coreografia) para gerenciar transações distribuídas entre Estoque, Pedidos e Pagamentos de forma reativa e assíncrona.
 2.  **Segurança Auditada**: Proteção contra vulnerabilidades conhecidas como **ReDoS** (via atualização do FastAPI para 0.109.1) e falhas de **Idempotência** em gateways de pagamento.
 3.  **CI/CD de Alta Fidelidade**: O pipeline do GitHub Actions utiliza **Service Containers com PostgreSQL 15 real**, evitando o uso de SQLite em testes e garantindo que o comportamento em teste seja idêntico ao de produção.
 4.  **Resiliência com RabbitMQ**: Implementação de **DLQs (Dead Letter Queues)** e mecanismos de retry para garantir que nenhuma mensagem de pagamento ou entrega de ativo seja perdida.
 
 ---
 
-## 🏗️ Arquitetura do Sistema
+## 🏗️ Arquitetura do Sistema (EDA)
 
-O sistema é composto por 6 motores independentes que se comunicam via RabbitMQ:
+O sistema é composto por 6 motores independentes que se comunicam através de eventos via RabbitMQ:
 
 *   **Identidade**: Gestão de usuários e autenticação via JWT.
 *   **Pedidos**: Orquestrador do ciclo de vida da compra.
