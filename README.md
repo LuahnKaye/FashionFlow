@@ -6,7 +6,7 @@ Este projeto demonstra o domínio de tecnologias de ponta e padrões de arquitet
 
 ---
 
-## 🌟 Diferenciais Técnicos (Nível Enterprise)
+## 🌟 Diferenciais Técnicos
 
 1.  **Arquitetura EDA & Saga Pattern**: Orquestração assíncrona entre serviços via RabbitMQ (Coreografia), garantindo desacoplamento máximo e resiliência a falhas parciais.
 2.  **Segurança Auditada**: Proteção contra vulnerabilidades de **ReDoS** (FastAPI 0.109.1) e implementação de **Idempotência** rigorosa em fluxos financeiros e de entrega.
