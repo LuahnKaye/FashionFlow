@@ -6,6 +6,19 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+# Variáveis globais para o Docker Compose no ambiente de CI
+env:
+  POSTGRES_USER: usuario_loja
+  POSTGRES_PASSWORD: senha_loja
+  POSTGRES_DB: ativosaga
+  RABBITMQ_DEFAULT_USER: convidado
+  RABBITMQ_DEFAULT_PASS: convidado
+  RABBITMQ_HOST: rabbitmq
+  DATABASE_URL: postgresql://usuario_loja:senha_loja@banco:5432/ativosaga
+  JWT_SECRET: teste_secret
+  STRIPE_SECRET_KEY: sk_test_simulada
+  STRIPE_WEBHOOK_SECRET: whsec_simulada
+
 jobs:
   qualidade_e_testes:
     name: Qualidade e Testes de Integração
@@ -29,8 +42,8 @@ jobs:
     - name: Subir Infraestrutura de Teste (Docker Compose)
       run: |
         cd ativosaga
-        docker-compose up -d
-        echo "Aguardando serviços iniciarem (30s)..."
+        docker compose up -d
+        echo "⏳ Aguardando serviços iniciarem (30s)..."
         sleep 30
 
     - name: Execução dos Testes de Integração (Saga E2E)
@@ -47,4 +60,4 @@ jobs:
       if: always()
       run: |
         cd ativosaga
-        docker-compose down
+        docker compose down

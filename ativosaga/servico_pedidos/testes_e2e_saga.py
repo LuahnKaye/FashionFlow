@@ -19,7 +19,7 @@ def aguardar_servicos():
                 resp = httpx.get(url + "/docs") # Swagger costuma estar sempre lá
                 if resp.status_code == 200:
                     break
-            except:
+            except Exception:
                 pass
             time.sleep(2)
     print("\n[READY] Todos os serviços estão online.")
