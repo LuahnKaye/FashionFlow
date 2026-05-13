@@ -12,7 +12,12 @@ Este projeto demonstra o domínio de tecnologias de ponta e padrões de arquitet
 2.  **Segurança Auditada**: Proteção contra vulnerabilidades de **ReDoS** (FastAPI 0.109.1) e implementação de **Idempotência** rigorosa em fluxos financeiros e de entrega.
 3.  **CI/CD de Alta Fidelidade**: Pipeline no GitHub Actions que utiliza **Service Containers com PostgreSQL 15 real**, garantindo que os testes de integração reflitam o comportamento exato de produção.
 4.  **Cloud-Native (AWS Ready)**: Estrutura preparada para deploy em **AWS ECS Fargate**, utilizando **RDS** para dados e **Amazon S3** para armazenamento de ativos digitais.
-5.  **Observabilidade com Datadog**: Injeção de **Distributed Tracing** (ddtrace) para monitorar latência e gargalos entre os 6 microsserviços.
+5.  **Qualidade de Software (SOLID & Clean Architecture)**:
+    *   **SRP (Responsabilidade Única)**: Cada microserviço possui uma única razão para existir.
+    *   **Repository & Service Pattern**: Camadas desacopladas para persistência e lógica de negócio.
+    *   **Clean Code (PT-BR)**: Código escrito em português para máxima clareza e redução de carga cognitiva.
+    *   **Documentação Viva**: Contrato de API documentado 100% via **Swagger UI**.
+6.  **Observabilidade com Datadog**: Injeção de **Distributed Tracing** (ddtrace) para monitorar latência e gargalos entre os 6 microsserviços.
 
 ---
 
