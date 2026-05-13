@@ -88,6 +88,10 @@ def confirmar_pagamento(id_sessao: str, banco: Session = Depends(obter_banco)):
             raise HTTPException(status_code=404, detail="Transação não encontrada.")
             
         if sessao.payment_status == 'paid':
+            # IDEMPOTÊNCIA: Verificamos se já não processamos este pagamento anteriormente
+            if transacao.status == "PAGO":
+                return {"status": "PAGO", "mensagem": "Pagamento já havia sido processado."}
+
             transacao.status = "PAGO"
             banco.commit()
             
@@ -125,6 +129,10 @@ async def stripe_webhook(request: Request, banco: Session = Depends(obter_banco)
         
         transacao = banco.query(Transacao).filter(Transacao.stripe_checkout_id == sessao.id).first()
         if transacao:
+            # IDEMPOTÊNCIA: Evita processar o mesmo webhook de sucesso duas vezes
+            if transacao.status == "PAGO":
+                return {"status": "sucesso", "detalhe": "Pagamento já processado anteriormente."}
+
             transacao.status = "PAGO"
             banco.commit()
             
