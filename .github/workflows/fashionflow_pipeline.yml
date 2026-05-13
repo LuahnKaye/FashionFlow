@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      # Criamos um banco real para os testes rodarem
+      # Banco Real para Testes
       banco_teste:
         image: postgres:15
         env:
@@ -20,9 +20,20 @@ jobs:
           POSTGRES_DB: fashionflow_teste
         ports:
           - 5432:5432
-        # Aguarda o banco estar pronto antes de iniciar os testes
         options: >-
           --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # Mensageria Real para Testes (Evita erro de conexão nos microsserviços)
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q check_running"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -35,19 +46,23 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Instalar Dependências (Identidade)
+    - name: Instalar Dependências
       run: |
         python -m pip install --upgrade pip
         pip install ruff pytest httpx
+        echo "Instalando requisitos de todos os serviços..."
         pip install -r fashion-flow/servico_identidade/requirements.txt
+        pip install -r fashion-flow/servico_pedidos/requirements.txt
+        pip install -r fashion-flow/servico_pagamentos/requirements.txt
 
     - name: Executar Linter (Ruff)
       run: ruff check fashion-flow/
 
-    - name: Executar Testes de Integração (PostgreSQL Real)
+    - name: Executar Testes de Integração
       env:
-        # Aqui injetamos a URL do banco que o GitHub criou acima
+        # Injetamos as URLs dos serviços reais criados pelo GitHub
         DATABASE_URL: postgresql://user_teste:senha_teste@localhost:5432/fashionflow_teste
+        RABBITMQ_HOST: localhost
       run: |
         echo "Rodando testes de Identidade..."
         cd fashion-flow/servico_identidade
