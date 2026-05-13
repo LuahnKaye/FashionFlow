@@ -25,7 +25,7 @@ jobs:
 
     - name: Run Tests - Identidade
       run: |
-        cd servico_identidade
+        cd ativosaga/servico_identidade
         pytest testes_identidade.py teste_integracao.py
       env:
         DATABASE_URL: sqlite:///./teste.db
@@ -33,7 +33,7 @@ jobs:
 
     - name: Run Tests - Pedidos
       run: |
-        cd servico_pedidos
+        cd ativosaga/servico_pedidos
         pytest testes_pedidos.py
       env:
         DATABASE_URL: sqlite:///./teste.db
@@ -42,7 +42,7 @@ jobs:
 
     - name: Run Tests - Pagamentos
       run: |
-        cd servico_pagamentos
+        cd ativosaga/servico_pagamentos
         pytest teste_fase4.py
       env:
         DATABASE_URL: sqlite:///./teste.db
