@@ -64,7 +64,7 @@ def criar_sessao_pagamento(
         nova_transacao = Transacao(
             id_pedido=id_pedido,
             id_usuario=id_usuario,
-            stripe_checkout_id=sessao.id,
+            id_sessao_stripe=sessao.id,
             status="PENDENTE",
             valor=99.90
         )
@@ -82,7 +82,7 @@ def confirmar_pagamento(id_sessao: str, banco: Session = Depends(obter_banco)):
     """
     try:
         sessao = stripe.checkout.Session.retrieve(id_sessao)
-        transacao = banco.query(Transacao).filter(Transacao.stripe_checkout_id == id_sessao).first()
+        transacao = banco.query(Transacao).filter(Transacao.id_sessao_stripe == id_sessao).first()
         
         if not transacao:
             raise HTTPException(status_code=404, detail="Transação não encontrada.")
@@ -127,7 +127,7 @@ async def stripe_webhook(request: Request, banco: Session = Depends(obter_banco)
         metadata = sessao.get('metadata', {})
         id_pedido = metadata.get('id_pedido')
         
-        transacao = banco.query(Transacao).filter(Transacao.stripe_checkout_id == sessao.id).first()
+        transacao = banco.query(Transacao).filter(Transacao.id_sessao_stripe == sessao.id).first()
         if transacao:
             # IDEMPOTÊNCIA: Evita processar o mesmo webhook de sucesso duas vezes
             if transacao.status == "PAGO":

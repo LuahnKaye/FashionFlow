@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 from main import app
-from banco_de_dados import obter_banco, motor_do_banco
+from banco_de_dados import motor_do_banco
 from sqlalchemy.orm import sessionmaker
 from modelos import Usuario
 
