@@ -18,7 +18,7 @@ export default function Hero() {
             Redefinindo o Digital Fashion
           </h2>
           <h1 className="text-6xl md:text-8xl font-black mb-8 leading-[1.1] font-display tracking-tight gradiente-texto">
-            ESTILO QUE <br /> FLUI COM VOCÊ
+            A ERA DOS <br /> ATIVOS DIGITAIS
           </h1>
         </motion.div>
 
@@ -29,7 +29,7 @@ export default function Hero() {
           className="text-lg md:text-xl text-texto-secundario mb-12 max-w-2xl mx-auto font-light leading-relaxed"
         >
           Explore coleções exclusivas de ativos digitais e peças premium. 
-          Onde a tecnologia encontra a alta costura em um fluxo contínuo.
+          Onde a tecnologia Saga encontra a alta costura em um fluxo resiliente.
         </motion.p>
 
         <motion.div

@@ -14,8 +14,8 @@ export default function Navbar({ aoBuscar, termo }) {
   return (
     <>
       <nav className="fixed top-0 w-full z-50 py-6 px-10 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5">
-        <Link to="/" className="text-2xl font-black tracking-tighter font-display">
-          FASHION<span className="text-destaque">FLOW</span>
+        <Link to="/" className="text-2xl font-black tracking-tighter font-display uppercase">
+          ATIVO<span className="text-destaque">SAGA</span>
         </Link>
         
         <div className="hidden md:flex gap-10 text-sm font-medium text-texto-secundario uppercase tracking-widest">

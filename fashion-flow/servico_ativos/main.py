@@ -16,7 +16,7 @@ from consumidor import iniciar_consumidor
 Base.metadata.create_all(bind=motor_do_banco)
 
 app = FastAPI(
-    title="FashionFlow - Servico de Ativos",
+    title="AtivoSAGA - Servico de Ativos",
     description="Gerencia a biblioteca de ativos digitais comprados pelo usuario."
 )
 

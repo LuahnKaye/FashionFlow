@@ -7,7 +7,7 @@ from rotas_pagamentos import roteador
 Base.metadata.create_all(bind=motor_do_banco)
 
 app = FastAPI(
-    title="FashionFlow - Servico de Pagamentos",
+    title="AtivoSAGA - Servico de Pagamentos",
     description="Gerencia sessoes de checkout Stripe e webhooks de confirmacao."
 )
 

@@ -1,6 +1,6 @@
-# 👗 FashionFlow - Ecossistema de Microserviços de Alta Escalabilidade (EDA)
+# 👗 AtivoSAGA - Ecossistema de Microserviços de Alta Escalabilidade (EDA)
 
-Bem-vindo ao **FashionFlow**, uma plataforma de e-commerce moderna, construída sob os princípios de **EDA (Event-Driven Architecture)** e Microsserviços, projetada para garantir resiliência, consistência eventual e observabilidade em escala enterprise.
+Bem-vindo ao **AtivoSAGA**, uma plataforma de e-commerce moderna, construída sob os princípios de **EDA (Event-Driven Architecture)** e Microsserviços, projetada para garantir resiliência, consistência eventual e observabilidade em escala enterprise.
 
 Este projeto demonstra o domínio de tecnologias de ponta e padrões de arquitetura distribuída (**Saga Pattern**), sendo uma vitrine de engenharia de software para sistemas de alta criticidade.
 

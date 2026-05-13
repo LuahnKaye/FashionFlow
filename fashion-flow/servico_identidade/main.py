@@ -9,7 +9,7 @@ from rotas_autenticacao import roteador
 Base.metadata.create_all(bind=motor_do_banco)
 
 app = FastAPI(
-    title="FashionFlow - Serviço Identidade",
+    title="AtivoSAGA - Serviço Identidade",
     description="Responsável por gerar os Tokens JWT e gerenciar os usuários."
 )
 

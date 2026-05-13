@@ -9,7 +9,7 @@ from consumidor import iniciar_consumidor
 Base.metadata.create_all(bind=motor_do_banco)
 
 app = FastAPI(
-    title="FashionFlow - Serviço de Pedidos",
+    title="AtivoSAGA - Serviço de Pedidos",
     description="Responsável pela orquestração de novas compras e comunicação via RabbitMQ."
 )
 

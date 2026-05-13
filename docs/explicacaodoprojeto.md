@@ -1,6 +1,6 @@
-Master Overview: FashionFlow (End-to-End)
+Master Overview: AtivoSAGA (End-to-End)
 1. Visão Geral e Intento do Projeto
-O FashionFlow é um ecossistema de e-commerce de ativos digitais desenvolvido sob os princípios de Microserviços e Arquitetura Orientada a Eventos (EDA).
+O AtivoSAGA é um ecossistema de e-commerce de ativos digitais desenvolvido sob os princípios de Microserviços e Arquitetura Orientada a Eventos (EDA).
 
 O projeto nasceu da necessidade de demonstrar competência técnica em sistemas distribuídos de alta criticidade, onde a falha de um componente (como o serviço de e-mail) não deve impedir a conclusão da jornada de valor do usuário (a compra e posse do ativo digital).
 
